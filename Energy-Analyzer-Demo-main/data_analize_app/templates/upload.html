@@ -1,0 +1,2580 @@
+{% extends 'master/base.html' %}
+
+{% block content %}
+<style>
+    /* Analysis Results Styles */
+    .results-card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease-in-out;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .results-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .results-card .card-header {
+        background: linear-gradient(135deg, #2193b0, #6dd5ed);
+        color: white;
+        border-bottom: none;
+        padding: 1rem;
+    }
+
+    .results-card .card-header h3 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .consumption-card {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1rem;
+    }
+
+    .consumption-card .card-header {
+        background: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+        color: #495057;
+        font-weight: 600;
+    }
+
+    .consumption-card .card-body {
+        padding: 1.25rem;
+    }
+
+    .consumption-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2193b0;
+    }
+
+    .consumption-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .chart-container {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-top: 2rem;
+    }
+
+    .chart-container-pricing {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-top: 2rem;
+    }
+
+    .statistics-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .statistics-item {
+        padding: 0.5rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .statistics-item:last-child {
+        border-bottom: none;
+    }
+
+    .statistics-label {
+        color: #495057;
+        font-weight: 500;
+    }
+
+    .statistics-value {
+        color: #2193b0;
+        font-weight: 600;
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="alert alert-danger" id="errorAlert" style="display: none;">
+        <h5 class="alert-heading">Error</h5>
+        <p id="errorMessage"></p>
+        <hr>
+    </div>
+</br>
+    <h1 class="text-center">Energy Analysis Dashboard</h1>
+    
+    <form id="uploadForm" method="post" enctype="multipart/form-data" class="mt-4">
+        {% csrf_token %}
+        
+        <!-- Energy Settings -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Energy Settings</h4>
+            </div>
+            <div class="card-body">
+                <!-- File Upload -->
+                <div class="mb-3">
+                    <label for="file" class="form-label">Upload Energy Data File</label>
+                    <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls,.csv" required>
+                    <small class="form-text text-muted">Please upload a CSV or Excel (XLSX) file containing energy consumption data.</small>
+                </div>
+
+                <!-- KWH Ceiling -->
+                <div class="row mb-3">
+                    <div class="col-md">
+                        <label for="kwh_ceiling" class="form-label">Ceiling</label>
+                        <input type="number" step="0.01" class="form-control" id="kwh_ceiling" name="kwh_ceiling" value="20" required>
+                        <small class="form-text text-muted">Maximum allowed power consumption (kWh)</small>
+                    </div>
+                </div>
+
+                <!-- Peak Hours -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="offpeak_start_time" class="form-label">Off-Peak Hours Start</label>
+                        <input type="time" class="form-control" id="offpeak_start_time" name="offpeak_hours_start" value="00:00" required>
+                        <small class="form-text text-muted">Start time of off-peak hours</small>
+                    </div>
+
+                <!-- Off-Peak Hours -->
+                <div class="col-md-6">
+                    <label for="peak_start_time" class="form-label">Peak Hours Start</label>
+                    <input type="time" class="form-control" id="peak_start_time" name="peak_hours_start" value="18:00" required>
+                    <small class="form-text text-muted">Start time of peak hours</small>
+                </div>
+                </div>
+
+                <!-- Pricing -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="price_high" class="form-label">Peak Hours Price (per kW)</label>
+                        <input type="number" step="0.01" class="form-control" id="price_high" name="price_high" value="0.35" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="price_low" class="form-label">Off-Peak Hours Price (per kW)</label>
+                        <input type="number" step="0.01" class="form-control" id="price_low" name="price_low" value="0.25" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="alert alert-danger" style="display: none;">
+            <span id="errorMessage"></span>
+        </div>
+
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">Analyze Data</button>
+        </div>
+    </form>
+</br>
+    <!-- Results Section -->
+    <div id="resultsSection" style="display: none;">
+            <!-- Data Summary Card -->
+    <div class="card results-card mb-4">
+        <div class="card-header">
+            <h3>Data Summary</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <strong>File Information</strong>
+                        <ul class="list-unstyled">
+                            <li>File Name: <span id="fileName">-</span></li>
+                            <li>Total Records: <span id="totalRecords">-</span></li>
+                            <li>Date Range: <span id="dateRange">-</span></li>
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Data Quality</strong>
+                        <ul class="list-unstyled">
+                            <li>Missing Values: <span id="missingValues">-</span></li>
+                            <li>Duplicate Records: <span id="duplicateRecords">-</span></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <strong>Consumption Statistics</strong>
+                        <ul class="list-unstyled">
+                            <li>Average Daily Consumption: <span id="avgDailyConsumption">-</span> kW</li>
+                            <li>Maximum Consumption: <span id="maxConsumption">-</span> kW</li>
+                            <li>Minimum Consumption: <span id="minConsumption">-</span> kW</li>
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Time Distribution</strong>
+                        <ul class="list-unstyled">
+                            <li>Peak Hours Usage: <span id="peakHoursUsage">-</span>%</li>
+                            <li>Off-Peak Hours Usage: <span id="offPeakHoursUsage">-</span>%</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card results-card mb-4">
+            <div class="card-header">
+                <h3>Analysis Results</h3>
+            </div>
+            <div class="card-body">
+                <!-- Analysis Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card consumption-card">
+                            <div class="card-header">Off-Peak Hours (<span id="offPeakTimeRange">00:00 - 18:00</span>)</div>
+                            <div class="card-body">
+                                <div class="consumption-label">Total Consumption</div>
+                                <div class="consumption-value"><span id="nightConsumption">0</span> kW</div>
+                                <div class="consumption-label mt-3">Total Cost</div>
+                                <div class="consumption-value">€ <span id="nightCost">0</span></div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="consumption-label small">Highest Daily Usage</div>
+                                        <div class="consumption-value small"><span id="lowHighestUsage">0</span> kW</div>
+                                        <div class="consumption-label small mt-2">Daily Cost</div>
+                                        <div class="consumption-value small">€ <span id="lowHighestCost">0</span></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="consumption-label small">Lowest Daily Usage</div>
+                                        <div class="consumption-value small"><span id="lowLowestUsage">0</span> kW</div>
+                                        <div class="consumption-label small mt-2">Daily Cost</div>
+                                        <div class="consumption-value small">€ <span id="lowLowestCost">0</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card consumption-card">
+                            <div class="card-header">Peak Hours (<span id="peakTimeRange">18:00 - 00:00</span>)</div>
+                            <div class="card-body">
+                                <div class="consumption-label">Total Consumption</div>
+                                <div class="consumption-value"><span id="dayConsumption">0</span> kW</div>
+                                <div class="consumption-label mt-3">Total Cost</div>
+                                <div class="consumption-value">€ <span id="dayCost">0</span></div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="consumption-label small">Highest Daily Usage</div>
+                                        <div class="consumption-value small"><span id="highHighestUsage">0</span> kW</div>
+                                        <div class="consumption-label small mt-2">Daily Cost</div>
+                                        <div class="consumption-value small">€ <span id="highHighestCost">0</span></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="consumption-label small">Lowest Daily Usage</div>
+                                        <div class="consumption-value small"><span id="highLowestUsage">0</span> kW</div>
+                                        <div class="consumption-label small mt-2">Daily Cost</div>
+                                        <div class="consumption-value small">€ <span id="highLowestCost">0</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card consumption-card">
+                            <div class="card-header">Total</div>
+                            <div class="card-body">
+                                <div class="consumption-label">Total Consumption</div>
+                                <div class="consumption-value"><span id="totalConsumption">0</span> kW</div>
+                                <div class="consumption-label mt-3">Total Cost</div>
+                                <div class="consumption-value">€ <span id="totalCost">0</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <style>
+                    .scrollable-card {
+                        max-height: 400px;
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                    }
+                    .consumption-card {
+                        height: 100%;
+                        margin-bottom: 1rem;
+                    }
+                    .consumption-card .card-header {
+                        padding: 0.75rem 1rem;
+                        border-bottom: 1px solid rgba(0,0,0,.125);
+                    }
+                    .consumption-card .table {
+                        margin-bottom: 0;
+                    }
+                    .consumption-card .table td, 
+                    .consumption-card .table th {
+                        padding: 0.5rem 1rem;
+                        white-space: nowrap;
+                    }
+                    .consumption-card .table-info {
+                        background-color: rgba(23, 162, 184, 0.1);
+                    }
+                    .statistics-card::-webkit-scrollbar {
+                        width: 6px;
+                    }
+                    .statistics-card::-webkit-scrollbar-track {
+                        background: #f1f1f1;
+                    }
+                    .statistics-card::-webkit-scrollbar-thumb {
+                        background: #888;
+                        border-radius: 3px;
+                    }
+                    .statistics-card::-webkit-scrollbar-thumb:hover {
+                        background: #555;
+                    }
+                    .calculator-button{
+                        float: right;
+                        margin-bottom: 5px;
+                        margin-top: -8px;
+                    }
+                    .new-price-form{
+                        max-width: 150px;
+                    }
+                </style>
+                <!-- profit calculation -->
+                <div class="container border rounded mt-5">
+                    <h5 class="text-uppercase text-center mb-3">Profit Calculator</h5>
+                    <div class="row">
+                      <!-- Left Section -->
+                      <div class="col-md-6 border rounded">
+                        <table class="table table-borderless align-middle">
+                          <thead>
+                            <tr>
+                                <th class=""></th>
+                                <th class="text-center">Unit/Price</th>
+                                <th class="text-center text-danger">USAGE in KWH</th>
+                                <th class="text-center">PRICE</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td class="border-end">peak</td>
+                              <td class="border-end text-center" id="peak-unit-price"></td>
+                              <td class="border-end text-center" id="peak-total-usage"></td>
+                              <td class="text-end text-center" id="peak-total-price"></td>
+                            </tr>
+                            <tr>
+                              <td class="border-end">Off Peak</td>
+                              <td class="border-end text-center" id="off-peak-unit-price"></td>
+                              <td class="border-end text-center" id="off-peak-total-usage"></td>
+                              <td class="text-end text-center" id="off-peak-total-price"></td>
+                            </tr>
+                            <tr>
+                              <td class="border-end fw-bold">Total</td>
+                              <td></td>
+                              <td class="border-end text-center fw-bold" id="total-usage"></td>
+                              <td class="text-center fw-bold" id="total-cost"></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                  
+                      <!-- Right Section -->
+                      <div class="col-md-6 bg-light border rounded">
+                          <table class="table table-borderless align-middle bg-light rounded">
+                            <thead>
+                              <tr>
+                                <th class="text-danger">NEW Unit/Price</th>
+                                <th class="text-center">New Cost</th>
+                                <th class="text-center">Yearly Profit</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>
+                                    <input type="number" class="new-price-form from form-control" id="peak-price"  min="0" step="1"/>
+                                </td>
+                                <td class="text-center" id="peak-new-cost"></td>
+                                <td class="text-center text-success" id="peak-profit"></td>
+                              </tr>
+                              <tr>
+                                <td><input type="number" class="new-price-form from form-control" id="off-peak-price"  min="0" step="1"/></td>
+                                <td class="text-center" id="off-peak-new-cost"></td>
+                                <td class="text-center text-success" id="off-peak-profit"></td>
+                              </tr>
+                              <tr>
+                                <td class="fw-bold">TOTAL</td>
+                                <td class="text-center fw-bold" id="total-new-cost"></td>
+                                <td class="text-center text-success fw-bold" id="total-yearly-profit"></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <!-- <button class="btn btn-primary calculator-button">Calculate new price</button> -->
+                      </div>
+                    </div>
+                  </div>
+                
+                  <!-- Chart Container -->
+                
+                <div class="container border rounded mt-5">
+
+                    <div class="chart-container">
+                        <div class="row mb-3">
+                            
+                            <div class="col-md-4" style="display: none;">
+                                <label for="timeGranularity" class="form-label">Time Granularity</label>
+                                <select class="form-select" id="timeGranularity" name="time_granularity">
+                                    <option value="all">All Data</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="hourly">Hourly</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="ChartType" class="form-label">Chart Type</label>
+                                <select class="form-select" id="ChartType">
+                                    <option value="all">All</option>
+                                    <option value="usageChart" selected>Usage Chart</option>
+                                    <option value="pricingChart">Pricing Chart</option>
+                                    <option value="ceiling">Ceiling Chart</option>
+                                    <option value="">Solar Chart</option>
+                                    <option value="">Asset Chart</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="timeFilter" class="form-label">Time Filter:</label>
+                                <select class="form-control" id="timeFilter" onchange="updateTimeFilter()">
+                                    <option value="all">All Data</option>
+                                    <option value="day">Last 24 Hours</option>
+                                    <option value="week">Last Week</option>
+                                    <option value="month">Last Month</option>
+                                    <option value="year">Last Year</option>
+                                </select>
+                            </div>
+                            <!-- New Quarter Filter -->
+                            <div class="col-md-4">
+                                <label for="quarterSelect" class="form-label">Quarter</label>
+                                <select class="form-select" id="quarterSelect">
+                                    <option value="all">All Quarters</option>
+                                    <option value="Q1">Q1 (Jan-Mar)</option>
+                                    <option value="Q2">Q2 (Apr-Jun)</option>
+                                    <option value="Q3">Q3 (Jul-Sep)</option>
+                                    <option value="Q4">Q4 (Oct-Dec)</option>
+                                </select>
+                            </div>
+
+                            <!-- New Month Filter -->
+                            <div class="col-md-4">
+                                <label for="monthSelect" class="form-label">Month</label>
+                                <select class="form-select" id="monthSelect">
+                                    <option value="all">All Months</option>
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+
+                            <!-- New Week Filter -->
+                            <div class="col-md-4">
+                                <label for="weekSelect" class="form-label">Per Week</label>
+                                <select class="form-select" id="weekSelect">
+                                    <option value="all">All Weeks</option>
+                                    <option value="1">Week 1</option>
+                                    <option value="2">Week 2</option>
+                                    <option value="3">Week 3</option>
+                                    <option value="4">Week 4</option>
+                                    <option value="5">Week 5</option>
+                                    <option value="6">Week 6</option>
+                                    <option value="7">Week 7</option>
+                                    <option value="8">Week 8</option>
+                                    <option value="9">Week 9</option>
+                                    <option value="10">Week 10</option>
+                                    <option value="11">Week 11</option>
+                                    <option value="12">Week 12</option>
+                                    <option value="13">Week 13</option>
+                                    <option value="14">Week 14</option>
+                                    <option value="15">Week 15</option>
+                                    <option value="16">Week 16</option>
+                                    <option value="17">Week 17</option>
+                                    <option value="18">Week 18</option>
+                                    <option value="19">Week 19</option>
+                                    <option value="20">Week 20</option>
+                                    <option value="21">Week 21</option>
+                                    <option value="22">Week 22</option>
+                                    <option value="23">Week 23</option>
+                                    <option value="24">Week 24</option>
+                                    <option value="25">Week 25</option>
+                                    <option value="26">Week 26</option>
+                                    <option value="27">Week 27</option>
+                                    <option value="28">Week 28</option>
+                                    <option value="29">Week 29</option>
+                                    <option value="30">Week 30</option>
+                                    <option value="31">Week 31</option>
+                                    <option value="32">Week 32</option>
+                                    <option value="33">Week 33</option>
+                                    <option value="34">Week 34</option>
+                                    <option value="35">Week 35</option>
+                                    <option value="36">Week 36</option>
+                                    <option value="37">Week 37</option>
+                                    <option value="38">Week 38</option>
+                                    <option value="39">Week 39</option>
+                                    <option value="40">Week 40</option>
+                                    <option value="41">Week 41</option>
+                                    <option value="42">Week 42</option>
+                                    <option value="43">Week 43</option>
+                                    <option value="44">Week 44</option>
+                                    <option value="45">Week 45</option>
+                                    <option value="46">Week 46</option>
+                                    <option value="47">Week 47</option>
+                                    <option value="48">Week 48</option>
+                                    <option value="49">Week 49</option>
+                                    <option value="50">Week 50</option>
+                                    <option value="51">Week 51</option>
+                                    <option value="52">Week 52</option>
+                                    <option value="53">Week 53</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div style="width: 100%; overflow-x: auto; overflow-y: hidden">
+                            <div style="width: 6000px; height: 500px">
+                                <canvas id="energyChart" height="500" width="0"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="container border rounded mt-5">
+                <!-- Chart Container Pricing -->
+                    <div class="chart-container-pricing">
+                        <div class="row mb-3">
+                            
+                            <div class="col-md-4" style="display: none;">
+                                <label for="timeGranularity" class="form-label">Time Granularity</label>
+                                <select class="form-select" id="timeGranularity_p" name="time_granularity_p">
+                                    <option value="all">All Data</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="hourly">Hourly</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="ChartType" class="form-label">Chart Type</label>
+                                <select class="form-select" id="ChartType_p">
+                                    <option value="all">All</option>
+                                    <option value="usageChart">Usage Chart</option>
+                                    <option value="pricingChart"selected>Pricing Chart</option>
+                                    <option value="ceiling">Ceiling Chart</option>
+                                    <option value="">Solar Chart</option>
+                                    <option value="">Asset Chart</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="timeFilter" class="form-label">Time Filter:</label>
+                                <select class="form-control" id="timeFilter_p" onchange="updateTimeFilter()">
+                                    <option value="all">All Data</option>
+                                    <option value="day">Last 24 Hours</option>
+                                    <option value="week">Last Week</option>
+                                    <option value="month">Last Month</option>
+                                    <option value="year">Last Year</option>
+                                </select>
+                            </div>
+                            <!-- New Quarter Filter -->
+                            <div class="col-md-4">
+                                <label for="quarterSelect" class="form-label">Quarter</label>
+                                <select class="form-select" id="quarterSelect_p">
+                                    <option value="all">All Quarters</option>
+                                    <option value="Q1">Q1 (Jan-Mar)</option>
+                                    <option value="Q2">Q2 (Apr-Jun)</option>
+                                    <option value="Q3">Q3 (Jul-Sep)</option>
+                                    <option value="Q4">Q4 (Oct-Dec)</option>
+                                </select>
+                            </div>
+
+                            <!-- New Month Filter -->
+                            <div class="col-md-4">
+                                <label for="monthSelect" class="form-label">Month</label>
+                                <select class="form-select" id="monthSelect_p">
+                                    <option value="all">All Months</option>
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+
+                            <!-- New Week Filter -->
+                            <div class="col-md-4">
+                                <label for="weekSelect" class="form-label">Per Week</label>
+                                <select class="form-select" id="weekSelect_p">
+                                    <option value="all">All Weeks</option>
+                                    <option value="1">Week 1</option>
+                                    <option value="2">Week 2</option>
+                                    <option value="3">Week 3</option>
+                                    <option value="4">Week 4</option>
+                                    <option value="5">Week 5</option>
+                                    <option value="6">Week 6</option>
+                                    <option value="7">Week 7</option>
+                                    <option value="8">Week 8</option>
+                                    <option value="9">Week 9</option>
+                                    <option value="10">Week 10</option>
+                                    <option value="11">Week 11</option>
+                                    <option value="12">Week 12</option>
+                                    <option value="13">Week 13</option>
+                                    <option value="14">Week 14</option>
+                                    <option value="15">Week 15</option>
+                                    <option value="16">Week 16</option>
+                                    <option value="17">Week 17</option>
+                                    <option value="18">Week 18</option>
+                                    <option value="19">Week 19</option>
+                                    <option value="20">Week 20</option>
+                                    <option value="21">Week 21</option>
+                                    <option value="22">Week 22</option>
+                                    <option value="23">Week 23</option>
+                                    <option value="24">Week 24</option>
+                                    <option value="25">Week 25</option>
+                                    <option value="26">Week 26</option>
+                                    <option value="27">Week 27</option>
+                                    <option value="28">Week 28</option>
+                                    <option value="29">Week 29</option>
+                                    <option value="30">Week 30</option>
+                                    <option value="31">Week 31</option>
+                                    <option value="32">Week 32</option>
+                                    <option value="33">Week 33</option>
+                                    <option value="34">Week 34</option>
+                                    <option value="35">Week 35</option>
+                                    <option value="36">Week 36</option>
+                                    <option value="37">Week 37</option>
+                                    <option value="38">Week 38</option>
+                                    <option value="39">Week 39</option>
+                                    <option value="40">Week 40</option>
+                                    <option value="41">Week 41</option>
+                                    <option value="42">Week 42</option>
+                                    <option value="43">Week 43</option>
+                                    <option value="44">Week 44</option>
+                                    <option value="45">Week 45</option>
+                                    <option value="46">Week 46</option>
+                                    <option value="47">Week 47</option>
+                                    <option value="48">Week 48</option>
+                                    <option value="49">Week 49</option>
+                                    <option value="50">Week 50</option>
+                                    <option value="51">Week 51</option>
+                                    <option value="52">Week 52</option>
+                                    <option value="53">Week 53</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="width: 100%; overflow-x: auto; overflow-y: hidden">
+                            <div style="width: 6000px; height: 500px">
+                                <canvas id="energyChart_p" height="500" width="0"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="container border rounded mt-5">
+                <!-- Chart Container Ceiling -->
+                    <div class="chart-container-Ceiling">
+                        <div class="row mb-3">
+                            
+                            <div class="col-md-4" style="display: none;">
+                                <label for="timeGranularity" class="form-label">Time Granularity</label>
+                                <select class="form-select" id="timeGranularity_c" name="time_granularity_c">
+                                    <option value="all">All Data</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="hourly">Hourly</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="ChartType" class="form-label">Chart Type</label>
+                                <select class="form-select" id="ChartType_c">
+                                    <option value="all">All</option>
+                                    <option value="usageChart">Usage Chart</option>
+                                    <option value="pricingChart">Pricing Chart</option>
+                                    <option value="ceiling" selected >Ceiling Chart</option>
+                                    <option value="">Solar Chart</option>
+                                    <option value="">Asset Chart</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="timeFilter" class="form-label">Time Filter:</label>
+                                <select class="form-control" id="timeFilter_c" onchange="updateTimeFilter()">
+                                    <option value="all">All Data</option>
+                                    <option value="day">Last 24 Hours</option>
+                                    <option value="week">Last Week</option>
+                                    <option value="month">Last Month</option>
+                                    <option value="year">Last Year</option>
+                                </select>
+                            </div>
+                            <!-- New Quarter Filter -->
+                            <div class="col-md-4">
+                                <label for="quarterSelect" class="form-label">Quarter</label>
+                                <select class="form-select" id="quarterSelect_c">
+                                    <option value="all">All Quarters</option>
+                                    <option value="Q1">Q1 (Jan-Mar)</option>
+                                    <option value="Q2">Q2 (Apr-Jun)</option>
+                                    <option value="Q3">Q3 (Jul-Sep)</option>
+                                    <option value="Q4">Q4 (Oct-Dec)</option>
+                                </select>
+                            </div>
+
+                            <!-- New Month Filter -->
+                            <div class="col-md-4">
+                                <label for="monthSelect" class="form-label">Month</label>
+                                <select class="form-select" id="monthSelect_c">
+                                    <option value="all">All Months</option>
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+
+                            <!-- New Week Filter -->
+                            <div class="col-md-4">
+                                <label for="weekSelect" class="form-label">Per Week</label>
+                                <select class="form-select" id="weekSelect_c">
+                                    <option value="all">All Weeks</option>
+                                    <option value="1">Week 1</option>
+                                    <option value="2">Week 2</option>
+                                    <option value="3">Week 3</option>
+                                    <option value="4">Week 4</option>
+                                    <option value="5">Week 5</option>
+                                    <option value="6">Week 6</option>
+                                    <option value="7">Week 7</option>
+                                    <option value="8">Week 8</option>
+                                    <option value="9">Week 9</option>
+                                    <option value="10">Week 10</option>
+                                    <option value="11">Week 11</option>
+                                    <option value="12">Week 12</option>
+                                    <option value="13">Week 13</option>
+                                    <option value="14">Week 14</option>
+                                    <option value="15">Week 15</option>
+                                    <option value="16">Week 16</option>
+                                    <option value="17">Week 17</option>
+                                    <option value="18">Week 18</option>
+                                    <option value="19">Week 19</option>
+                                    <option value="20">Week 20</option>
+                                    <option value="21">Week 21</option>
+                                    <option value="22">Week 22</option>
+                                    <option value="23">Week 23</option>
+                                    <option value="24">Week 24</option>
+                                    <option value="25">Week 25</option>
+                                    <option value="26">Week 26</option>
+                                    <option value="27">Week 27</option>
+                                    <option value="28">Week 28</option>
+                                    <option value="29">Week 29</option>
+                                    <option value="30">Week 30</option>
+                                    <option value="31">Week 31</option>
+                                    <option value="32">Week 32</option>
+                                    <option value="33">Week 33</option>
+                                    <option value="34">Week 34</option>
+                                    <option value="35">Week 35</option>
+                                    <option value="36">Week 36</option>
+                                    <option value="37">Week 37</option>
+                                    <option value="38">Week 38</option>
+                                    <option value="39">Week 39</option>
+                                    <option value="40">Week 40</option>
+                                    <option value="41">Week 41</option>
+                                    <option value="42">Week 42</option>
+                                    <option value="43">Week 43</option>
+                                    <option value="44">Week 44</option>
+                                    <option value="45">Week 45</option>
+                                    <option value="46">Week 46</option>
+                                    <option value="47">Week 47</option>
+                                    <option value="48">Week 48</option>
+                                    <option value="49">Week 49</option>
+                                    <option value="50">Week 50</option>
+                                    <option value="51">Week 51</option>
+                                    <option value="52">Week 52</option>
+                                    <option value="53">Week 53</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="width: 100%; overflow-x: auto; overflow-y: hidden">
+                            <div style="width: 6000px; height: 500px">
+                                <canvas id="energyChart_c" height="500" width="0"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+
+                <!-- Average Consumption Analysis Card -->
+                <div class="card results-card mb-4">
+                    <div class="card-header">
+                        <h3>Average Consumption Analysis</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Hourly Average -->
+                            <div class="col-md-3">
+                                <div class="card consumption-card">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Hourly Average</h5>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div id="hourly-averages" class="statistics-card scrollable-card">
+                                            <!-- Will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Daily Average -->
+                            <div class="col-md-3">
+                                <div class="card consumption-card">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Daily Average</h5>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div id="daily-averages" class="statistics-card scrollable-card">
+                                            <!-- Will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Weekly Average -->
+                            <div class="col-md-3">
+                                <div class="card consumption-card">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Weekly Average</h5>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div id="weekly-averages" class="statistics-card scrollable-card">
+                                            <!-- Will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Monthly Average -->
+                            <div class="col-md-3">
+                                <div class="card consumption-card">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Monthly Average</h5>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div id="monthly-averages" class="statistics-card scrollable-card">
+                                            <!-- Will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Statistics Section -->
+                <div class="statistics-card" id="statistics">
+                    <h5 class="mb-3">Processing Statistics</h5>
+                    <div class="row">
+                        <div class="col">
+                            <div class="statistics-item">
+                                <h6>Total Records</h6>
+                                <p id="total-records">-</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="statistics-item">
+                                <h6>Processed Records</h6>
+                                <p id="processed-records">-</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="statistics-item">
+                                <h6>Processing Time</h6>
+                                <p id="processing-time">-</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="statistics-item">
+                                <h6>Duplicate Timestamps</h6>
+                                <p id="duplicate-timestamps">-</p>
+                                <small class="text-muted" id="duplicate-info" style="display: none;">
+                                    Duplicates were aggregated by summing consumption values.
+                                    <br>
+                                    <span class="text-info">Examples of duplicates:</span>
+                                    <ul id="duplicate-examples" class="list-unstyled mt-1"></ul>
+                                    <div id="duplicate-expand" style="display: none;">
+                                        <a href="#" class="text-primary" id="show-all-duplicates">Show all duplicates</a>
+                                        <div id="all-duplicates" style="display: none; max-height: 200px; overflow-y: auto;" class="mt-2">
+                                            <ul class="list-unstyled"></ul>
+                                        </div>
+                                    </div>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="statistics-item">
+                                <h6>Processing Range</h6>
+                                <p id="date-range">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-footer text-center">
+            <button id="downloadPdf" class="btn btn-primary">Download Summary as PDF</button>
+        </div>
+        
+    </div>
+        
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        let energyChart = null;
+        let energyChart_p = null;
+        let energyChart_c = null;
+        
+        let chartData = null;  // Store the chart data globally
+        let filtersChartData = null;
+        let updatedChartData = null;
+        
+        function filterDataByTime(data, filterType) {
+            if (filterType === 'all') return data;
+            
+            const labels = data.labels;
+            const endDate = new Date(labels[labels.length - 1]);
+            const filteredIndices = [];
+        
+            // Calculate the cutoff date based on filter type
+            let cutoffDate = new Date(endDate); // Use the last date in the dataset
+            switch (filterType) {
+                case 'day':
+                    cutoffDate.setDate(endDate.getDate() - 1);
+                    break;
+                case 'week':
+                    cutoffDate.setDate(endDate.getDate() - 7);
+                    break;
+                case 'month':
+                    cutoffDate.setMonth(endDate.getMonth() - 1);
+                    break;
+                case 'year':
+                    cutoffDate.setFullYear(endDate.getFullYear() - 1);
+                    break;
+            }
+        
+            // Find indices of dates within the filter range
+            labels.forEach((label, index) => {
+                const date = new Date(label);
+                if (date >= cutoffDate && date <= endDate) {
+                    filteredIndices.push(index);
+                }
+            });
+            
+            // Filter the data
+            return {
+                labels: filteredIndices.map(i => labels[i]),
+                datasets: {
+                    consumption: {
+                        day_consumption: filteredIndices.map(i => data.datasets.consumption.day_consumption[i]),
+                        night_consumption: filteredIndices.map(i => data.datasets.consumption.night_consumption[i])
+                    },
+                    costs: {
+                        day_costs: filteredIndices.map(i => data.datasets.costs.day_costs[i]),
+                        night_costs: filteredIndices.map(i => data.datasets.costs.night_costs[i])
+                    }
+                }
+            };
+        }
+        // Global object to store consumption averages
+        let consumptionAverages = {};
+        // update averages
+        function updateConsumptionAverages(averages) {
+            consumptionAverages = averages; // Store averages for use in the PDF generation
+            // Update hourly averages
+            let hourlyHtml = '<div class="consumption-details">';
+                hourlyHtml += '<table class="table table-sm">';
+                hourlyHtml += '<thead><tr><th>Hour</th><th>Average (kW)</th></tr></thead>';
+                hourlyHtml += '<tbody>';
+                
+                // Calculate overall hourly average
+                const hourlyValues = Object.values(averages.hourly_avg);
+                const overallHourlyAvg = hourlyValues.reduce((sum, value) => sum + value, 0) / hourlyValues.length;
+                
+                Object.entries(averages.hourly_avg).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).forEach(([hour, value]) => {
+                    hourlyHtml += `<tr><td>${hour}:00</td><td>${value.toFixed(2)}</td></tr>`;
+                });
+                
+                hourlyHtml += `<tr class="table-info"><td><strong>Overall Average</strong></td><td><strong>${overallHourlyAvg.toFixed(2)}</strong></td></tr>`;
+                hourlyHtml += '</tbody></table></div>';
+                document.getElementById('hourly-averages').innerHTML = hourlyHtml;
+            
+            // Update daily averages
+            let dailyHtml = '<div class="consumption-details">';
+            dailyHtml += '<table class="table table-sm">';
+            dailyHtml += '<thead><tr><th>Day</th><th>Average (kW)</th></tr></thead>';
+            dailyHtml += '<tbody>';
+            
+            if (averages.daily_avg_by_day) {
+                const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                daysOrder.forEach(day => {
+                    if (averages.daily_avg_by_day[day]) {
+                        dailyHtml += `<tr><td>${day}</td><td>${averages.daily_avg_by_day[day].toFixed(2)}</td></tr>`;
+                    }
+                });
+            }
+            
+            dailyHtml += `<tr class="table-info"><td><strong>Overall Average</strong></td><td><strong>${averages.daily_avg.toFixed(2)}</strong></td></tr>`;
+            dailyHtml += '</tbody></table></div>';
+            document.getElementById('daily-averages').innerHTML = dailyHtml;
+            
+            // Update monthly averages
+            let monthlyHtml = '<div class="consumption-details">';
+            monthlyHtml += '<table class="table table-sm">';
+            monthlyHtml += '<thead><tr><th>Month</th><th>Average (kW)</th></tr></thead>';
+            monthlyHtml += '<tbody>';
+            
+            if (averages.monthly_avg_by_month) {
+                const monthsOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
+                                   'July', 'August', 'September', 'October', 'November', 'December'];
+                monthsOrder.forEach(month => {
+                    if (averages.monthly_avg_by_month[month]) {
+                        monthlyHtml += `<tr><td>${month}</td><td>${averages.monthly_avg_by_month[month].toFixed(2)}</td></tr>`;
+                    }
+                });
+            }
+            
+            monthlyHtml += `<tr class="table-info"><td><strong>Overall Average</strong></td><td><strong>${averages.monthly_avg.toFixed(2)}</strong></td></tr>`;
+            monthlyHtml += '</tbody></table></div>';
+            document.getElementById('monthly-averages').innerHTML = monthlyHtml;
+            
+            // Update weekly averages
+            let weeklyHtml = '<div class="consumption-details">';
+                weeklyHtml += '<table class="table table-sm">';
+                weeklyHtml += '<thead><tr><th>Week</th><th>Average (kW)</th></tr></thead>';
+                weeklyHtml += '<tbody>';
+                
+                if (averages.weekly_avg_by_week) {
+                    Object.entries(averages.weekly_avg_by_week)
+                        .sort((a, b) => {
+                            // Extract year and week from "Week XX, YYYY" format
+                            const [, weekA, yearA] = a[0].match(/Week (\d+), (\d+)/);
+                            const [, weekB, yearB] = b[0].match(/Week (\d+), (\d+)/);
+                            // First compare years, then weeks if years are equal
+                            return yearA === yearB ? 
+                                   parseInt(weekA) - parseInt(weekB) : 
+                                   parseInt(yearA) - parseInt(yearB);
+                        })
+                        .forEach(([weekLabel, value]) => {
+                            weeklyHtml += `<tr><td>${weekLabel}</td><td>${value.toFixed(2)}</td></tr>`;
+                        });
+                }
+                
+                weeklyHtml += `<tr class="table-info"><td><strong>Overall Average</strong></td><td><strong>${averages.weekly_avg.toFixed(2)}</strong></td></tr>`;
+                weeklyHtml += '</tbody></table></div>';
+                document.getElementById('weekly-averages').innerHTML = weeklyHtml;
+        }
+
+        function updateTimeFilter() {
+            if (chartData) {
+                const filterType = document.getElementById('timeFilter').value;
+                const filteredData = filterDataByTime(chartData.chart_data, filterType);
+                
+                // Create datasets (always line charts)
+                const datasets = [];
+                
+                // Calculate total consumption
+                const totalConsumption = filteredData.datasets.consumption.day_consumption.map((val, idx) => 
+                    val + filteredData.datasets.consumption.night_consumption[idx]
+                );
+                
+                // Consumption datasets
+                datasets.push({
+                    label: 'Peak Hours Consumption (kW)',
+                    data: filteredData.datasets.consumption.day_consumption,
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    borderWidth: 1,
+                    tension: 0.4,
+                    yAxisID: 'consumption',
+                    type: 'line'
+                });
+                
+                datasets.push({
+                    label: 'Off-Peak Hours Consumption (kW)',
+                    data: filteredData.datasets.consumption.night_consumption,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1,
+                    tension: 0.4,
+                    yAxisID: 'consumption',
+                    type: 'line'
+                });
+        
+                // Add total consumption line
+                datasets.push({
+                    label: 'Total Consumption (kW)',
+                    data: totalConsumption,
+                    backgroundColor: 'rgba(75, 192, 192, 0)',
+                    borderColor: 'rgb(75, 192, 192)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    yAxisID: 'consumption',
+                    type: 'line',
+                    order: 0
+                });
+                
+                // Cost datasets
+                datasets.push({
+                    label: 'Peak Hours Cost (€)',
+                    data: filteredData.datasets.costs.day_costs,
+                    backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                    borderColor: 'rgb(255, 159, 64)',
+                    borderWidth: 1,
+                    tension: 0.4,
+                    yAxisID: 'cost',
+                    type: 'line'
+                });
+                
+                datasets.push({
+                    label: 'Off-Peak Hours Cost (€)',
+                    data: filteredData.datasets.costs.night_costs,
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgb(75, 192, 192)',
+                    borderWidth: 1,
+                    tension: 0.4,
+                    yAxisID: 'cost',
+                    type: 'line'
+                });
+        
+                // Calculate indices for annotations
+                const indices = calculateIndices(filteredData.datasets.consumption);
+                
+                // Create and update chart (always use 'line')
+                const config = createChartConfig('line', filteredData.labels, datasets, indices);
+                if (energyChart) {
+                    energyChart.destroy();
+                }
+                if (energyChart_p) {
+                    energyChart_p.destroy();
+                }
+                if (energyChart_c) {
+                    energyChart_c.destroy();
+                }
+                const ctx = document.getElementById('energyChart').getContext('2d');
+                energyChart = new Chart(ctx, config);
+                
+                const ctx_p = document.getElementById('energyChart_p').getContext('2d');
+                energyChart_p = new Chart(ctx_p, config);
+
+                const ctx_c = document.getElementById('energyChart_c').getContext('2d');
+                energyChart_c = new Chart(ctx_c, config);
+
+                // Update summary statistics
+                updateSummaryStatistics(filteredData);
+            }
+        }
+        function updateFilterOptions(data) {
+            const labels = data.chart_data.labels;
+            const startDate = new Date(labels[0]);
+            const endDate = new Date(labels[labels.length - 1]);
+            const diffTime = Math.abs(endDate - startDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            const timeFilter = document.getElementById('timeFilter');
+            timeFilter.innerHTML = '<option value="all">All Data</option>';
+            
+            // Add day filter if data spans more than 1 day
+            if (diffDays >= 2) {
+                timeFilter.innerHTML += '<option value="day">Last Day</option>';
+            }
+            
+            // Add week filter if data spans more than 7 days
+            if (diffDays >= 7) {
+                timeFilter.innerHTML += '<option value="week">Last Week</option>';
+            }
+            
+            // Add month filter if data spans more than 30 days
+            if (diffDays >= 30) {
+                timeFilter.innerHTML += '<option value="month">Last Month</option>';
+            }
+            
+            // Add year filter if data spans more than 365 days
+            if (diffDays >= 365) {
+                timeFilter.innerHTML += '<option value="year">Last Year</option>';
+            }
+        }
+        // Add this function to update summary statistics
+        function updateSummaryStatistics(data) {
+            // Update consumption values
+            document.getElementById('dayConsumption').textContent = 
+                formatEUNumber(data.datasets.consumption.day_consumption.reduce((a, b) => a + b, 0));
+            document.getElementById('nightConsumption').textContent = 
+                formatEUNumber(data.datasets.consumption.night_consumption.reduce((a, b) => a + b, 0));
+            
+            // Update cost values
+            const totalDayCost = data.datasets.costs.day_costs.reduce((a, b) => a + b, 0);
+            const totalNightCost = data.datasets.costs.night_costs.reduce((a, b) => a + b, 0);
+            
+            document.getElementById('dayCost').textContent = formatEUNumber(totalDayCost);
+            document.getElementById('nightCost').textContent = formatEUNumber(totalNightCost);
+            
+            // Update totals
+            // Parse the numbers properly, removing EU formatting first
+            const totalConsumption = data.datasets.consumption.day_consumption.reduce((a, b) => a + b, 0) + 
+                                    data.datasets.consumption.night_consumption.reduce((a, b) => a + b, 0);
+            const totalCost = totalDayCost + totalNightCost;
+            
+            document.getElementById('totalConsumption').textContent = formatEUNumber(totalConsumption);
+            document.getElementById('totalCost').textContent = formatEUNumber(totalCost);
+        }
+        
+        // Modify your existing renderChart function to create datasets separately
+        function createDatasets(data, chartType) {
+            const datasets = [];
+            
+            // Calculate total consumption
+            const totalConsumption = data.datasets.consumption.day_consumption.map((val, idx) => 
+                val + data.datasets.consumption.night_consumption[idx]
+            );
+            
+            // Consumption datasets
+            datasets.push({
+                label: 'Peak Hours Consumption (kW)',
+                data: data.datasets.consumption.day_consumption,
+                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                borderColor: 'rgb(255, 99, 132)',
+                borderWidth: 1,
+                tension: 0.4,
+                yAxisID: 'consumption',
+                type: 'line'
+            });
+            
+            datasets.push({
+                label: 'Off-Peak Hours Consumption (kW)',
+                data: data.datasets.consumption.night_consumption,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgb(54, 162, 235)',
+                borderWidth: 1,
+                tension: 0.4,
+                yAxisID: 'consumption',
+                type: 'line'
+            });
+        
+            // Add total consumption line
+            datasets.push({
+                label: 'Total Consumption (kW)',
+                data: totalConsumption,
+                backgroundColor: 'rgba(75, 192, 192, 0)',
+                borderColor: 'rgb(75, 192, 192)',
+                borderWidth: 2,
+                tension: 0.4,
+                yAxisID: 'consumption',
+                type: 'line',
+                order: 0  // This ensures the line appears on top
+            });
+            
+            // Cost datasets
+            datasets.push({
+                label: 'Peak Hours Cost (€)',
+                data: data.datasets.costs.day_costs,
+                backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                borderColor: 'rgb(255, 159, 64)',
+                borderWidth: 1,
+                tension: 0.4,
+                yAxisID: 'cost',
+                type: 'line'
+            });
+            
+            datasets.push({
+                label: 'Off-Peak Hours Cost (€)',
+                data: data.datasets.costs.night_costs,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgb(75, 192, 192)',
+                borderWidth: 1,
+                tension: 0.4,
+                yAxisID: 'cost',
+                type: 'line'
+            });
+        
+            return datasets;
+        }
+
+        // Update chart type handler
+        function updateChartType() {
+            if (chartData) {
+                const filterType = document.getElementById('timeFilter').value;
+                const quarter = document.getElementById('quarterSelect').value;
+                const month = document.getElementById('monthSelect').value;
+                const week = document.getElementById('weekSelect').value;
+                const timeGranularity = document.getElementById('timeGranularity').value;
+                const chartType = document.getElementById('ChartType').value;
+                
+                filteredData = filterDataByTime(chartData.chart_data, filterType);
+
+                // Apply additional filters to the current filtered data
+                filteredData = applyAdditionalFilters(filteredData, quarter, month, week, timeGranularity);
+                
+                // Store the filtered data for next filter operation
+                filtersChartData = JSON.parse(JSON.stringify(filteredData));
+
+                // Create datasets
+                const datasets = [];
+                
+                // Calculate total consumption
+                const totalConsumption = filteredData.datasets.consumption.day_consumption.map((val, idx) => 
+                    val + filteredData.datasets.consumption.night_consumption[idx]
+                );
+                
+                // Consumption datasets
+                datasets.push({
+                    label: 'Peak Hours Consumption (kW)',
+                    data: filteredData.datasets.consumption.day_consumption,
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    borderWidth: 1,
+                    tension: 0.4,
+                    yAxisID: 'consumption',
+                    type: 'line'
+                });
+                
+                datasets.push({
+                    label: 'Off-Peak Hours Consumption (kW)',
+                    data: filteredData.datasets.consumption.night_consumption,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1,
+                    tension: 0.4,
+                    yAxisID: 'consumption',
+                    type: 'line'
+                });
+
+                // Add total consumption line
+                datasets.push({
+                    label: 'Total Consumption (kW)',
+                    data: totalConsumption,
+                    backgroundColor: 'rgba(75, 192, 192, 0)',
+                    borderColor: 'rgb(75, 192, 192)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    yAxisID: 'consumption',
+                    type: 'line',
+                    order: 0
+                });
+                
+                // Cost datasets
+                datasets.push({
+                    label: 'Peak Hours Cost (€)',
+                    data: filteredData.datasets.costs.day_costs,
+                    backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                    borderColor: 'rgb(255, 159, 64)',
+                    borderWidth: 1,
+                    tension: 0.4,
+                    yAxisID: 'cost',
+                    type: 'line'
+                });
+                
+                datasets.push({
+                    label: 'Off-Peak Hours Cost (€)',
+                    data: filteredData.datasets.costs.night_costs,
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgb(75, 192, 192)',
+                    borderWidth: 1,
+                    tension: 0.4,
+                    yAxisID: 'cost',
+                    type: 'line'
+                });
+
+                // Calculate indices for annotations
+                const indices = calculateIndices(filteredData.datasets.consumption);
+                
+                // Create and update chart
+                const config = createChartConfig('line', filteredData.labels, datasets, indices, chartType);
+                
+                if (energyChart) {
+                    energyChart.destroy();
+                }
+                const ctx = document.getElementById('energyChart').getContext('2d');
+                energyChart = new Chart(ctx, config);
+
+                if (energyChart_p) {
+                    energyChart_p.destroy();
+                }
+                const ctx_p = document.getElementById('energyChart_p').getContext('2d');
+                energyChart_p = new Chart(ctx_p, config);
+
+                if (energyChart_c) {
+                    energyChart_c.destroy();
+                }
+                const ctx_c = document.getElementById('energyChart_c').getContext('2d');
+                energyChart_c = new Chart(ctx_c, config);
+                // Update summary statistics
+                updateSummaryStatistics(filteredData);
+            }
+        }
+        
+        // Add this new function to handle the additional filters
+        function applyAdditionalFilters(data, quarter, month, week, timeGranularity) {
+            if (!data) return data;
+        
+            // Create a copy of the data to avoid modifying the original
+            let filteredData = JSON.parse(JSON.stringify(data));
+            
+            // Helper function to get month number from date string
+            function getMonthFromDate(dateStr) {
+                // Assuming date format is "YYYY-MM-DD HH:mm" or similar
+                const monthStr = dateStr.split('-')[1];
+                return parseInt(monthStr, 10); // This will handle leading zeros correctly
+            }
+            
+            // Helper function to get week number from date string
+            function getWeekFromDate(dateStr) {
+                const date = new Date(dateStr);
+                const startOfYear = new Date(date.getFullYear(), 0, 1);
+                const days = Math.floor((date - startOfYear) / (24 * 60 * 60 * 1000));
+                const weekNumber = Math.floor(days / 7) + 1;
+                return weekNumber;
+            }
+        
+            // Apply quarter filter
+            if (quarter !== 'all') {
+                const quarterMonths = {
+                    'Q1': [1, 2, 3],
+                    'Q2': [4, 5, 6],
+                    'Q3': [7, 8, 9],
+                    'Q4': [10, 11, 12]
+                };
+                
+                const monthsToInclude = quarterMonths[quarter];
+                const indicesToKeep = [];
+                
+                filteredData.labels.forEach((label, index) => {
+                    const monthNum = getMonthFromDate(label);
+                    if (monthsToInclude.includes(monthNum)) {
+                        indicesToKeep.push(index);
+                    }
+                });
+                
+                // Filter labels and datasets based on indices to keep
+                filteredData.labels = filteredData.labels.filter((_, index) => indicesToKeep.includes(index));
+                Object.keys(filteredData.datasets.consumption).forEach(key => {
+                    filteredData.datasets.consumption[key] = filteredData.datasets.consumption[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+                Object.keys(filteredData.datasets.costs).forEach(key => {
+                    filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+            }
+        
+            // Apply month filter
+            if (month !== 'all') {
+                const monthNum = parseInt(month);
+                const indicesToKeep = [];
+                
+                filteredData.labels.forEach((label, index) => {
+                    const labelMonth = getMonthFromDate(label);
+                    if (labelMonth === monthNum) {
+                        indicesToKeep.push(index);
+                    }
+                });
+                
+                // Filter labels and datasets based on indices to keep
+                filteredData.labels = filteredData.labels.filter((_, index) => indicesToKeep.includes(index));
+                Object.keys(filteredData.datasets.consumption).forEach(key => {
+                    filteredData.datasets.consumption[key] = filteredData.datasets.consumption[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+                Object.keys(filteredData.datasets.costs).forEach(key => {
+                    filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+            }
+        
+            // Apply week filter
+            if (week !== 'all') {
+                const weekNum = parseInt(week);
+                const indicesToKeep = [];
+                
+                filteredData.labels.forEach((label, index) => {
+                    const labelWeek = getWeekFromDate(label);
+                    if (labelWeek === weekNum) {
+                        indicesToKeep.push(index);
+                    }
+                });
+                
+                // Filter labels and datasets based on indices to keep
+                filteredData.labels = filteredData.labels.filter((_, index) => indicesToKeep.includes(index));
+                Object.keys(filteredData.datasets.consumption).forEach(key => {
+                    filteredData.datasets.consumption[key] = filteredData.datasets.consumption[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+                Object.keys(filteredData.datasets.costs).forEach(key => {
+                    filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+            }
+            
+            // Apply time granularity filter
+            if (timeGranularity !== 'all') {
+                if (timeGranularity === 'hourly') {
+                    // Create hourly data structure
+                    const hourlyData = {
+                        labels: [],
+                        datasets: {
+                            consumption: {
+                                day_consumption: [],
+                                night_consumption: []
+                            },
+                            costs: {
+                                day_costs: [],
+                                night_costs: []
+                            }
+                        }
+                    };
+
+                    // Get peak hours start time
+                    const peakStart = document.getElementById('peak_start_time').value;
+                    const peakHour = parseInt(peakStart.split(':')[0]);
+                    
+                    // For each day in the filtered data
+                    filteredData.labels.forEach((date, index) => {
+                        // Generate 24 hourly data points for this day
+                        for (let hour = 0; hour < 24; hour++) {
+                            const hourDate = new Date(date);
+                            hourDate.setHours(hour);
+                            
+                            // Format the date as "YYYY-MM-DD HH:00"
+                            const hourLabel = `${date} ${hour.toString().padStart(2, '0')}:00`;
+                            hourlyData.labels.push(hourLabel);
+
+                            // Calculate consumption based on whether it's peak or off-peak
+                            const isPeakHour = hour >= peakHour || hour < 6; // Assuming peak hours are from peakStart to 6am
+                            const dailyConsumption = isPeakHour ? 
+                                filteredData.datasets.consumption.day_consumption[index] : 
+                                filteredData.datasets.consumption.night_consumption[index];
+                            
+                            // Distribute daily consumption across hours (with some variation)
+                            const hourlyConsumption = (dailyConsumption / 24) * (0.8 + Math.random() * 0.4);
+
+                            // Set consumption values
+                            if (isPeakHour) {
+                                hourlyData.datasets.consumption.day_consumption.push(hourlyConsumption);
+                                hourlyData.datasets.consumption.night_consumption.push(0);
+                                
+                                // Calculate costs
+                                const peakPrice = parseFloat(document.getElementById('price_high').value);
+                                hourlyData.datasets.costs.day_costs.push(hourlyConsumption * peakPrice);
+                                hourlyData.datasets.costs.night_costs.push(0);
+                            } else {
+                                hourlyData.datasets.consumption.day_consumption.push(0);
+                                hourlyData.datasets.consumption.night_consumption.push(hourlyConsumption);
+                                
+                                // Calculate costs
+                                const offPeakPrice = parseFloat(document.getElementById('price_low').value);
+                                hourlyData.datasets.costs.day_costs.push(0);
+                                hourlyData.datasets.costs.night_costs.push(hourlyConsumption * offPeakPrice);
+                            }
+                        }
+                    });
+
+                    return hourlyData;
+                } else if (timeGranularity === 'daily') {
+                    return filteredData;
+                }
+            }
+            
+            return filteredData;
+        }
+
+        // reset and update other filters
+        function resetOtherFilters(currentFilter) {
+            const filters = {
+                'timeFilter': document.getElementById('timeFilter'),
+                'quarterSelect': document.getElementById('quarterSelect'),
+                'monthSelect': document.getElementById('monthSelect'),
+                'weekSelect': document.getElementById('weekSelect'),
+                //'timeGranularity': document.getElementById('timeGranularity')
+            };
+            
+            // Reset all filters except the current one
+            Object.entries(filters).forEach(([id, element]) => {
+                if (element.id !== currentFilter) {
+                    element.value = 'all';
+                }
+            });
+        }
+
+        function resetAllFilters(currentFilter) {
+            const filters = {
+                'timeFilter': document.getElementById('timeFilter'),
+                'quarterSelect': document.getElementById('quarterSelect'),
+                'monthSelect': document.getElementById('monthSelect'),
+                'weekSelect': document.getElementById('weekSelect'),
+                'ChartType': document.getElementById('ChartType'),
+            };
+            
+            // Reset all filters except the current one
+            Object.entries(filters).forEach(([id, element]) => {
+                    element.value = 'all';
+            });
+
+            document.getElementById('peak-price').value = ''
+            document.getElementById('off-peak-price').value = ''
+        }
+        
+        // Modify the event listeners to include filter reset
+        document.getElementById('timeFilter').addEventListener('change', function() {
+            resetOtherFilters('timeFilter');
+            updateChartType();
+        });
+        
+        document.getElementById('quarterSelect').addEventListener('change', function() {
+            resetOtherFilters('quarterSelect');
+            updateChartType();
+        });
+        
+        document.getElementById('monthSelect').addEventListener('change', function() {
+            resetOtherFilters('monthSelect');
+            updateChartType();
+        });
+        
+        document.getElementById('weekSelect').addEventListener('change', function() {
+            resetOtherFilters('weekSelect');
+            updateChartType();
+        });
+        
+        document.getElementById('timeGranularity').addEventListener('change', function() {
+            resetOtherFilters('timeGranularity');
+            updateChartType();
+        });
+
+        // Add event listener for ceiling value changes
+        document.getElementById('kwh_ceiling').addEventListener('change', function(event) {
+            updateChartType();
+        });
+
+        document.getElementById('ChartType').addEventListener('change', function() {
+            updateChartType();
+        });
+        
+        document.getElementById('peak-price').addEventListener('input', function(event) {            
+            setProfitValueToProfitCalculatorSection(event.target.value, 'peak')
+        });
+        document.getElementById('off-peak-price').addEventListener('input', function() {            
+            setProfitValueToProfitCalculatorSection(event.target.value, 'offPeak')   
+        });
+
+        function formatEUNumber(number, decimals = 2) {
+            // Convert to EU format with thousands separator
+            let formatted = number.toFixed(decimals)
+                .replace('.', ',')  // Replace decimal point with comma
+                .replace(/\B(?=(\d{3})+(?!\d))/g, '.'); // Add dots as thousand separators
+            
+            // If no decimals, add the dash
+            if (decimals === 0) {
+                formatted += ',-';
+            }
+            
+            return formatted;
+        }
+        
+        
+        function calculateAdjustedCeiling() {
+            if (filtersChartData){
+                return Math.max(...filtersChartData.datasets.consumption.day_consumption)
+            }
+            return Math.max(...chartData.chart_data.datasets.consumption.day_consumption)
+        }
+        
+        //function calculateAdjustedCeiling() {
+        //    if (!filtersChartData || !filtersChartData.datasets || !filtersChartData.datasets.consumption) {
+        //        return 0; // Default value if data is unavailable
+        //    }
+
+            // Assuming `currentView` is a global or accessible variable indicating the selected view
+        //    const currentView = filtersChartData.view || "month"; // Default to "month" if not defined
+        //    const consumptionData = filtersChartData.datasets.consumption.day_consumption;
+        //    const quarterData = filtersChartData.datasets.consumption.quarter_consumption || [];
+
+        //    switch (currentView) {
+        //        case "day":
+        //            return Math.max(...consumptionData); 
+        //        return Math.max(...data);
+        //        case "week":
+                    //Use the highest value in quarter or hourly data
+        //            return Math.max(...quarterData);
+        //        case "month":
+                    //Use the highest value in quarter or hourly data
+        //            return Math.max(...MonthData);
+        //        case "year":
+        //        case "quarter":
+                    // Use the highest cumulative daily consumption
+        //            return Math.max(...consumptionData);
+        //        default:
+                    //return 0; // Default value for unsupported views
+        //            return Math.max(...chartData.chart_data.datasets.consumption.day_consumption)
+        //    }
+        //}
+
+
+
+
+        function createChartConfig(chartType, labels, datasets, indices, chartClassification='all') {                        
+            // Calculate the positions for all annotations
+            const points = {
+                highPeak: {
+                    x: labels[indices.highestPeakIndex],
+                    y: datasets[0].data[indices.highestPeakIndex],
+                    color: 'rgba(255, 99, 132, 0.8)'
+                },
+                lowPeak: {
+                    x: labels[indices.lowestPeakIndex],
+                    y: datasets[0].data[indices.lowestPeakIndex],
+                    color: 'rgba(255, 99, 132, 0.8)'
+                },
+                highOffPeak: {
+                    x: labels[indices.highestOffPeakIndex],
+                    y: datasets[1].data[indices.highestOffPeakIndex],
+                    color: 'rgba(54, 162, 235, 0.8)'
+                },
+                lowOffPeak: {
+                    x: labels[indices.lowestOffPeakIndex],
+                    y: datasets[1].data[indices.lowestOffPeakIndex],
+                    color: 'rgba(54, 162, 235, 0.8)'
+                }
+            };            
+        
+            // Define all annotations including the ceiling
+            let annotations = {
+                highestPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.highPeak.x,
+                    yValue: points.highPeak.y,
+                    backgroundColor: points.highPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Highest Peak',
+                        position: 'top'
+                    }
+                },
+                lowestPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.lowPeak.x,
+                    yValue: points.lowPeak.y,
+                    backgroundColor: points.lowPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Lowest Peak',
+                        position: 'bottom'
+                    }
+                },
+                highestOffPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.highOffPeak.x,
+                    yValue: points.highOffPeak.y,
+                    backgroundColor: points.highOffPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Highest Off-Peak',
+                        position: 'top'
+                    }
+                },
+                lowestOffPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.lowOffPeak.x,
+                    yValue: points.lowOffPeak.y,
+                    backgroundColor: points.lowOffPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Lowest Off-Peak',
+                        position: 'bottom'
+                    }
+                },
+                ceiling: {
+                    type: 'line',
+                    yMin: calculateAdjustedCeiling(),
+                    yMax: calculateAdjustedCeiling(),
+                    borderColor: 'rgba(255, 0, 0, 0.8)',
+                    borderWidth: 3,
+                    borderDash: [10, 5],
+                    yScaleID: 'consumption', // Changed from scaleID to yScaleID
+                    label: {
+                        display: true,
+                        content: `Ceiling: ${formatEUNumber(calculateAdjustedCeiling())} kW`,
+                        position: 'start',
+                        backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: 6
+                    }
+                }
+            };           
+
+            if (chartClassification==='usageChart') {
+                 datasets = datasets.filter(
+                     (item) => item.label==='Peak Hours Consumption (kW)'
+                     || item.label === 'Off-Peak Hours Consumption (kW)'
+                     ||  item.label === 'Total Consumption (kW)'
+                 )
+            } else if (chartClassification==='pricingChart') {
+                datasets = datasets.filter(
+                    (item) => item.label==='Peak Hours Cost (€)'
+                    || item.label === 'Off-Peak Hours Cost (€)'
+                )
+                annotations = {}
+            } else if(chartClassification==='ceiling') {
+                // datasets = datasets.filter((item) => item.label==='Total Consumption (kW)')
+                datasets = []
+                annotations = { ceiling: annotations.ceiling};
+            }
+            
+            return {
+                type: chartType === 'mixed' ? 'bar' : chartType,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        consumption: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Energy Consumption (kW)'
+                            }
+                        },
+                        cost: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Cost (€)'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: annotations  // Use the annotations object defined above
+                        },
+                        title: {
+                            display: true,
+                            text: 'Daily Energy Consumption and Costs'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += formatEUNumber(context.parsed.y);
+                                    return label;
+                                },
+                                afterLabel: function(context) {
+                                    const priceHigh = parseFloat(document.getElementById('price_high').value);
+                                    const priceLow = parseFloat(document.getElementById('price_low').value);
+                                    
+                                    if (context.raw === points.highPeak.y && context.label === points.highPeak.x) {
+                                        return `- Peak Hours(Highest Daily)\n  Usage: ${formatEUNumber(points.highPeak.y)} kW / Cost: €${formatEUNumber(points.highPeak.y * priceHigh)}`;
+                                    }
+                                    if (context.raw === points.lowPeak.y && context.label === points.lowPeak.x) {
+                                        return `- Peak Hours(Highest Daily)\n  Usage: ${formatEUNumber(points.lowPeak.y)} kW / Cost: €${formatEUNumber(points.lowPeak.y * priceHigh)}`;
+                                    }
+                                    if (context.raw === points.highOffPeak.y && context.label === points.highOffPeak.x) {
+                                        return `- Off Peak(Highest Daily)\n  Usage: ${formatEUNumber(points.highOffPeak.y)} kW / Cost: €${formatEUNumber(points.highOffPeak.y * priceLow)}`;
+                                    }
+                                    if (context.raw === points.lowOffPeak.y && context.label === points.lowOffPeak.x) {
+                                        return `- Off Peak(Highest Daily)\n  Usage: ${formatEUNumber(points.lowOffPeak.y)} kW / Cost: €${formatEUNumber(points.lowOffPeak.y * priceLow)}`;
+                                    }
+                                    return '';
+                                }
+                                
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        // Update the renderChart and updateChartType functions to calculate all indices
+        function calculateIndices(consumption) {
+            const dayConsumption = consumption.day_consumption;
+            const nightConsumption = consumption.night_consumption;
+            
+            return {
+                highestPeakIndex: dayConsumption.reduce((maxIndex, current, index, array) => 
+                    current > array[maxIndex] ? index : maxIndex, 0),
+                lowestPeakIndex: dayConsumption.reduce((minIndex, current, index, array) => 
+                    (current > 0 && current < array[minIndex]) || array[minIndex] === 0 ? index : minIndex, 0),
+                highestOffPeakIndex: nightConsumption.reduce((maxIndex, current, index, array) => 
+                    current > array[maxIndex] ? index : maxIndex, 0),
+                lowestOffPeakIndex: nightConsumption.reduce((minIndex, current, index, array) => 
+                    (current > 0 && current < array[minIndex]) || array[minIndex] === 0 ? index : minIndex, 0)
+            };
+        }
+
+        // Update renderChart function
+        function renderChart(data) {
+            const ctx = document.getElementById('energyChart').getContext('2d');
+            const ctx_p = document.getElementById('energyChart_p').getContext('2d');
+            const ctx_c = document.getElementById('energyChart_c').getContext('2d');
+            
+            const chartType = 'line';
+            console.log("######################################")
+            console.log(data.chart_data.datasets.hourly_data.labels)
+            console.log(data.chart_data.datasets.hourly_data.day_values)
+            console.log(data.chart_data.datasets.hourly_data.night_values)
+            console.log("######################################")
+            if (energyChart) {
+                energyChart.destroy();
+            }
+            if (energyChart_p) {
+                energyChart_p.destroy();
+            }
+
+            if (energyChart_c) {
+                energyChart_c.destroy();
+            }
+            // Update available filter options based on data range
+            updateFilterOptions(data);
+            const datasets = createDatasets(data.chart_data, chartType);
+            const indices = calculateIndices(data.chart_data.datasets.consumption);
+            const config = createChartConfig(chartType, data.chart_data.labels, datasets, indices);
+            
+            energyChart = new Chart(ctx, config);
+            chartData = data; // Store the data globally
+            
+            energyChart_p = new Chart(ctx_p, config);
+            chartData = data;
+
+            energyChart_c = new Chart(ctx_c, config);
+            chartData = data;
+            // Initialize summary statistics
+            updateSummaryStatistics(data.chart_data);
+        }
+
+        let allDuplicateData = null;
+
+        function updateDataSummary(data) {
+            // Helper function to format numbers
+            function formatNumber(value, decimals = 2) {
+                if (value === null || value === undefined || isNaN(value)) {
+                    return '-';
+                }
+                return Number(value).toFixed(decimals);
+            }
+        
+            // Update File Information
+            document.getElementById('fileName').textContent = data.file_name || '-';
+            document.getElementById('totalRecords').textContent = data.total_records || '-';
+            document.getElementById('dateRange').textContent = `${data.start_date || '-'} to ${data.end_date || '-'}`;
+        
+            // Update Data Quality
+            document.getElementById('missingValues').textContent = data.missing_values || '0';
+            document.getElementById('duplicateRecords').textContent = data.duplicate_records || '0';
+        
+            // Update Consumption Statistics
+            document.getElementById('avgDailyConsumption').textContent = formatNumber(data.avg_daily_consumption);
+            document.getElementById('maxConsumption').textContent = formatNumber(data.max_consumption);
+            document.getElementById('minConsumption').textContent = formatNumber(data.min_consumption);
+        
+            // Update Time Distribution
+            document.getElementById('peakHoursUsage').textContent = formatNumber(data.peak_hours_percentage * 100, 1);
+            document.getElementById('offPeakHoursUsage').textContent = formatNumber(data.off_peak_hours_percentage * 100, 1);
+        }
+
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+        
+        function updateAveragesDisplay(elementId, averages, label, isDays = false, isMonths = false) {
+            const container = document.getElementById(elementId);
+            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            // Helper function to format hour label
+            function formatHourLabel(hour) {
+                if (hour === 0) return 'Midnight';
+                if (hour === 12) return 'Noon';
+                if (hour < 12) return `${hour} AM`;
+                return `${hour - 12} PM`;
+            }
+        
+            // Sort and group the statistics
+            let sortedItems = [];
+            averages.forEach((item, index) => {
+                if (item.count > 0) {
+                    const average = item.sum / item.count;
+                    let displayLabel;
+                    
+                    if (isDays) {
+                        displayLabel = daysOfWeek[index];
+                    } else if (isMonths) {
+                        displayLabel = months[index];
+                    } else if (label === 'Week') {
+                        displayLabel = `Week ${index + 1}`;
+                    } else {
+                        displayLabel = formatHourLabel(index);
+                    }
+                    
+                    sortedItems.push({
+                        label: displayLabel,
+                        value: average,
+                        originalIndex: index
+                    });
+                }
+            });
+        
+            // Sort items if needed (for hours)
+            if (!isDays && !isMonths && label !== 'Week') {
+                sortedItems.sort((a, b) => a.originalIndex - b.originalIndex);
+            }
+        
+            // Generate HTML with formatted values
+            let html = '';
+            sortedItems.forEach(item => {
+                const formattedValue = formatEUNumber(item.value);
+                
+                html += `
+                    <div class="statistics-item">
+                        <span class="statistics-label">${item.label}:</span>
+                        <span class="statistics-value">${formattedValue} kW</span>
+                    </div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+
+
+        let newTotalPeakCost = 0
+        let newTotalOffPeakCost = 0
+        let peakProfit = 0
+        let offPeakProfit = 0
+        function setProfitValueToProfitCalculatorSection(newPrice, usageTime){
+            let totalCost = 0
+            let totalProfit = 0
+
+            data = chartData.chart_data.summary
+            
+            // new cost calculation
+            if (usageTime==='peak'){
+                if (newPrice)
+                    newTotalPeakCost =  data.total_day_consumption * parseFloat(newPrice)
+                else
+                    newTotalPeakCost = 0
+            }
+             
+            if (usageTime==='offPeak'){
+                if (newPrice)
+                    newTotalOffPeakCost = data.total_night_consumption * parseFloat(newPrice)
+                else
+                    newTotalOffPeakCost = 0
+            }            
+            totalCost = newTotalPeakCost + newTotalOffPeakCost
+
+            // profit calculation
+            peakProfit = newTotalPeakCost > 0 ? data.total_day_cost - newTotalPeakCost : 0
+            offPeakProfit = newTotalOffPeakCost > 0 ? data.total_night_cost - newTotalOffPeakCost : 0
+            totalProfit = peakProfit + offPeakProfit
+
+            if (usageTime==='peak'){
+                document.getElementById('peak-new-cost').textContent = '€ ' + String(newTotalPeakCost.toFixed(2)) + ',-'
+                document.getElementById('peak-profit').textContent = '€ ' + String(peakProfit.toFixed(2)) + ',-'
+            }
+
+            if (usageTime==='offPeak'){
+                document.getElementById('off-peak-new-cost').textContent = '€ ' + String(newTotalOffPeakCost.toFixed(2)) + ',-'
+                document.getElementById('off-peak-profit').textContent = '€ ' + String(offPeakProfit.toFixed(2)) + ',-'
+            }
+            
+            document.getElementById('total-new-cost').textContent = totalCost.toFixed(2)
+            document.getElementById('total-yearly-profit').textContent = totalProfit.toFixed(2)
+        }
+
+        function setDataToProfitCalculatorSection(data) {            
+            document.getElementById('peak-unit-price').textContent = '€ ' + String(data.peak_price)
+            document.getElementById('off-peak-unit-price').textContent = '€ ' + String(data.off_peak_price)
+            document.getElementById('peak-total-usage').textContent = data.total_day_consumption
+            document.getElementById('off-peak-total-usage').textContent = data.total_night_consumption
+            document.getElementById('peak-total-price').textContent = '€ ' + String(data.total_day_cost) + ',-'
+            document.getElementById('off-peak-total-price').textContent = '€ ' + String(data.total_night_cost) + ',-'
+            document.getElementById('total-usage').textContent = data.total_consumption
+            document.getElementById('total-cost').textContent = '€ ' + String(data.total_cost) + ',-'
+        }
+        
+
+        function renderResults(data) {
+            // Update data summary
+            updateDataSummary(data);
+
+            // set data to profit calculator section
+            setDataToProfitCalculatorSection(data.chart_data.summary)
+
+            // Update consumption averages if available
+            if (data.consumption_averages) {
+                updateConsumptionAverages(data.consumption_averages);
+            }
+
+            // Store all duplicate data
+            allDuplicateData = data.chart_data.statistics.duplicate_examples;
+            chartData = data;
+            // Update statistics
+            document.getElementById('statistics').style.display = 'block';
+            document.getElementById('total-records').textContent = data.chart_data.statistics.total_records.toLocaleString();
+            document.getElementById('processed-records').textContent = data.chart_data.statistics.processed_records.toLocaleString();
+            document.getElementById('processing-time').textContent = `${data.chart_data.statistics.processing_time_seconds} seconds`;
+            document.getElementById('date-range').textContent = 
+                `${data.chart_data.statistics.date_range.start} to ${data.chart_data.statistics.date_range.end}`;
+            
+            // Update duplicate timestamps info
+            const duplicateTimestamps = data.chart_data.statistics.duplicate_timestamps;
+            document.getElementById('duplicate-timestamps').textContent = duplicateTimestamps.toLocaleString();
+            const duplicateInfo = document.getElementById('duplicate-info');
+            const duplicateExamples = document.getElementById('duplicate-examples');
+            const duplicateExpand = document.getElementById('duplicate-expand');
+            
+            if (duplicateTimestamps > 0) {
+                duplicateInfo.style.display = 'block';
+                // Clear previous examples
+                duplicateExamples.innerHTML = '';
+                // Add first 5 examples
+                allDuplicateData.slice(0, 5).forEach(dup => {
+                    const li = document.createElement('li');
+                    li.className = 'small';
+                    li.textContent = `${dup.timestamp} (${dup.count} occurrences)`;
+                    duplicateExamples.appendChild(li);
+                });
+                
+                // Show expand option if there are more than 5 duplicates
+                if (allDuplicateData.length > 5) {
+                    duplicateExpand.style.display = 'block';
+                } else {
+                    duplicateExpand.style.display = 'none';
+                }
+            } else {
+                duplicateInfo.style.display = 'none';
+                duplicateExpand.style.display = 'none';
+            }
+
+            // Update summary values
+            document.getElementById('dayConsumption').textContent = formatEUNumber(data.chart_data.summary.total_day_consumption);
+            document.getElementById('nightConsumption').textContent = formatEUNumber(data.chart_data.summary.total_night_consumption);
+            document.getElementById('totalConsumption').textContent = formatEUNumber(data.chart_data.summary.total_consumption);
+            document.getElementById('dayCost').textContent = formatEUNumber(data.chart_data.summary.total_day_cost);
+            document.getElementById('nightCost').textContent = formatEUNumber(data.chart_data.summary.total_night_cost);
+            document.getElementById('totalCost').textContent = formatEUNumber(data.chart_data.summary.total_cost);            
+            
+            // Update high/low usage statistics
+            const dayConsumption = data.chart_data.datasets.consumption.day_consumption;
+            const nightConsumption = data.chart_data.datasets.consumption.night_consumption;
+            const priceHigh = parseFloat(document.getElementById('price_high').value);
+            const priceLow = parseFloat(document.getElementById('price_low').value);
+
+            // Helper function to safely format numbers
+            function formatNumber(value) {
+                if (value === Infinity || value === -Infinity || isNaN(value) || value === null || value === undefined) {
+                    return '0,00';  // Changed to EU format
+                }
+                // For very large numbers, we need to ensure proper formatting
+                return formatEUNumber(Number(value));
+            }
+            // Helper function to safely calculate min/max
+            function safeCalculate(array, operation) {
+                const filteredArray = array.filter(x => !isNaN(x) && x !== Infinity && x !== -Infinity && x !== null && x !== undefined);
+                if (filteredArray.length === 0) return 0;
+                return operation === 'max' ? Math.max(...filteredArray) : Math.min(...filteredArray.filter(x => x > 0));
+            }
+
+            // Calculate peak hours (day) high/low
+            const highHighest = safeCalculate(dayConsumption, 'max');
+            const highLowest = safeCalculate(dayConsumption, 'min');
+
+            // Calculate off-peak hours (night) high/low
+            const lowHighest = safeCalculate(nightConsumption, 'max');
+            const lowLowest = safeCalculate(nightConsumption, 'min');
+
+            // Update all usage statistics
+            document.getElementById('highHighestUsage').textContent = formatNumber(highHighest);
+            document.getElementById('highLowestUsage').textContent = formatNumber(highLowest);
+            document.getElementById('lowHighestUsage').textContent = formatNumber(lowHighest);
+            document.getElementById('lowLowestUsage').textContent = formatNumber(lowLowest);
+
+            // Update all cost statistics
+            document.getElementById('highHighestCost').textContent = formatNumber(highHighest * priceHigh);
+            document.getElementById('highLowestCost').textContent = formatNumber(highLowest * priceHigh);
+            document.getElementById('lowHighestCost').textContent = formatNumber(lowHighest * priceLow);
+            document.getElementById('lowLowestCost').textContent = formatNumber(lowLowest * priceLow);
+
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+
+            // Render the chart
+            renderChart(data);
+
+        }
+
+        // Add event listener for showing all duplicates
+        document.getElementById('show-all-duplicates').addEventListener('click', function(e) {
+            e.preventDefault();
+            const allDuplicatesDiv = document.getElementById('all-duplicates');
+            const showAllLink = document.getElementById('show-all-duplicates');
+            
+            if (allDuplicatesDiv.style.display === 'none') {
+                // Show all duplicates
+                allDuplicatesDiv.style.display = 'block';
+                showAllLink.textContent = 'Hide duplicates';
+                
+                // Populate the list if not already done
+                if (allDuplicatesDiv.querySelector('ul').children.length === 0) {
+                    const ul = allDuplicatesDiv.querySelector('ul');
+                    allDuplicateData.forEach(dup => {
+                        const li = document.createElement('li');
+                        li.className = 'small';
+                        li.textContent = `${dup.timestamp} (${dup.count} occurrences)`;
+                        ul.appendChild(li);
+                    });
+                }
+            } else {
+                // Hide duplicates
+                allDuplicatesDiv.style.display = 'none';
+                showAllLink.textContent = 'Show all duplicates';
+            }
+        });
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            resetAllFilters()
+            // Hide previous error messages and results
+            document.getElementById('errorAlert').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            
+            // Get time inputs
+            const offpeakStartTime = document.getElementById('offpeak_start_time').value;
+            const peakStartTime = document.getElementById('peak_start_time').value;
+            
+            // Function to convert 24h to 12h format
+            function formatTime(time24h) {
+                const [hours, minutes] = time24h.split(':');
+                const hour = parseInt(hours);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const hour12 = hour % 12 || 12;
+                return `${hour12}:${minutes} ${ampm}`;
+            }
+            
+            // Update time range displays with AM/PM format
+            document.getElementById('peakTimeRange').textContent = 
+                `${formatTime(peakStartTime)}`;
+            document.getElementById('offPeakTimeRange').textContent = 
+                `${formatTime(offpeakStartTime)}`;
+            
+            // Validate time inputs
+            if (!offpeakStartTime || !peakStartTime) {
+                document.getElementById('errorMessage').textContent = "Please enter both off-peak and peak start times.";
+                document.getElementById('errorAlert').style.display = 'block';
+                return;
+            }
+            
+            // Show loading state
+            const submitButton = document.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+            
+            try {
+                const formData = new FormData(e.target);
+                formData.append('offpeak_hours_start', offpeakStartTime);
+                formData.append('peak_hours_start', peakStartTime);
+                
+                const response = await fetch('/upload/', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderResults(data);
+                } else {
+                    // Show error message with more context
+                    const errorMessage = data.error || "An unexpected error occurred. Please try again.";
+                    document.getElementById('errorMessage').textContent = errorMessage;
+                    document.getElementById('errorAlert').style.display = 'block';
+                    // Scroll to error message
+                    document.getElementById('errorAlert').scrollIntoView({ behavior: 'smooth' });
+                }
+            } catch (error) {
+                console.error('Error:', error);  // Log error for debugging
+                // Show detailed error message
+                document.getElementById('errorMessage').textContent = 
+                    "An error occurred while processing your file. Please check the file format and try again.";
+                document.getElementById('errorAlert').style.display = 'block';
+                document.getElementById('errorAlert').scrollIntoView({ behavior: 'smooth' });
+            } finally {
+                // Restore button state
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            }
+        }
+
+        // Update form submission handler
+        document.getElementById('uploadForm').addEventListener('submit', handleFormSubmit);
+
+
+
+        // download
+        document.getElementById('downloadPdf').addEventListener('click', function () {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                format: 'a4',
+                unit: 'mm'
+            });
+        
+            // Define dimensions
+            const pageWidth = 210; // A4 width in mm
+            const pageHeight = 297; // A4 height in mm
+            const margin = 10;
+            const cardWidth = pageWidth - margin * 2;
+            const headerHeight = 10; // Height of the header
+            const lineSpacing = 7; // Line spacing
+        
+            // Header text variables
+            const headerText = 'Data Summary Report';
+            const headerAnalysisText = 'Analysis Results Report';
+            const headerAverageText = 'Average Results Report';
+            const headerFontSize = 14;
+        
+            // Starting Y position for content
+            let y = 25;
+        
+            const sections = [
+                { title: 'File Information', data: [
+                    `File Name: ${document.getElementById('fileName').textContent}`,
+                    `Total Records: ${document.getElementById('totalRecords').textContent}`,
+                    `Date Range: ${document.getElementById('dateRange').textContent}`,
+                ]},
+                { title: 'Data Quality', data: [
+                    `Missing Values: ${document.getElementById('missingValues').textContent}`,
+                    `Duplicate Records: ${document.getElementById('duplicateRecords').textContent}`,
+                ]},
+                { title: 'Consumption Statistics', data: [
+                    `Average Daily Consumption: ${document.getElementById('avgDailyConsumption').textContent} kW`,
+                    `Maximum Consumption: ${document.getElementById('maxConsumption').textContent} kW`,
+                    `Minimum Consumption: ${document.getElementById('minConsumption').textContent} kW`,
+                ]},
+                { title: 'Time Distribution', data: [
+                    `Peak Hours Usage: ${document.getElementById('peakHoursUsage').textContent}%`,
+                    `Off-Peak Hours Usage: ${document.getElementById('offPeakHoursUsage').textContent}%`,
+                ]},
+            ];
+        
+            const analysisSections = [
+                { title: 'Off-Peak Hours Analysis Report', data: [
+                    `Total Consumption: ${document.getElementById('nightConsumption').textContent} kW`,
+                    `Total Cost: €${document.getElementById('nightCost').textContent}`,
+                    `Highest Daily Usage: ${document.getElementById('lowHighestUsage').textContent} kW`,
+                    `Lowest Daily Usage: ${document.getElementById('lowLowestUsage').textContent} kW`,
+                    `Daily Highest Cost: €${document.getElementById('lowHighestCost').textContent}`,
+                    `Daily Lowest Cost: €${document.getElementById('lowLowestCost').textContent}`,
+                ]},
+                { title: 'Peak Analysis Hours Report', data: [
+                    `Total Consumption: ${document.getElementById('dayConsumption').textContent} kW`,
+                    `Total Cost: €${document.getElementById('dayCost').textContent}`,
+                    `Highest Daily Usage: ${document.getElementById('highHighestUsage').textContent} kW`,
+                    `Lowest Daily Usage: ${document.getElementById('highLowestUsage').textContent} kW`,
+                    `Daily Highest Cost: €${document.getElementById('highHighestCost').textContent}`,
+                    `Daily Lowest Cost: €${document.getElementById('highLowestCost').textContent}`,
+                ]},
+                { title: 'Total Analysis Report', data: [
+                    `Total Consumption: ${document.getElementById('totalConsumption').textContent} kW`,
+                    `Total Cost: €${document.getElementById('totalCost').textContent}`,
+                ]},
+            ];
+        
+            // Function to add a section
+            function addSection(doc, section, y) {
+                if (y + lineSpacing * section.data.length > pageHeight - margin) {
+                    doc.addPage();
+                    y = margin; // Reset y to top margin
+                }
+        
+                // Add section title
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(0, 0, 0); // Black text
+                doc.text(section.title, margin + 5, y);
+                y += lineSpacing;
+        
+                // Add section data
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                section.data.forEach(item => {
+                    doc.text(item, margin + 10, y);
+                    y += lineSpacing;
+                });
+        
+                return y + 5; // Return updated y position with extra spacing
+            }
+        
+            // Function to add a table
+            function addTable(doc, title, headers, rows, y) {
+                const cellHeight = 6;
+                const cellWidth = 50;
+                const headerBgColor = [200, 200, 200]; // Light gray for headers
+        
+                if (y + 10 + rows.length * cellHeight > pageHeight - margin) {
+                    doc.addPage();
+                    y = margin; // Reset y to top margin
+                }
+        
+                // Table title
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text(title, margin, y);
+                y += 5;
+        
+                // Table headers
+                let startX = margin;
+        
+                // Draw header background and text
+                headers.forEach(header => {
+                    doc.setFillColor(...headerBgColor);
+                    doc.rect(startX, y, cellWidth, cellHeight, 'F'); // Fill rectangle for header background
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(0, 0, 0); // Black text
+                    doc.text(header, startX + 2, y + cellHeight / 1.5);
+                    startX += cellWidth;
+                });
+        
+                y += cellHeight;
+        
+                // Table rows
+                rows.forEach(row => {
+                    startX = margin;
+        
+                    row.forEach(cell => {
+                        // Draw cell border
+                        doc.rect(startX, y, cellWidth, cellHeight); // Border for each cell
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(0, 0, 0); // Black text
+                        doc.text(String(cell), startX + 2, y + cellHeight / 1.5);
+                        startX += cellWidth;
+                    });
+        
+                    y += cellHeight;
+        
+                    // Add a new page if needed
+                    if (y + cellHeight > pageHeight - margin) {
+                        doc.addPage();
+                        y = margin; // Reset y to top margin
+                    }
+                });
+        
+                return y + 5; // Return updated y position
+            }
+        
+            // Add Data Summary Report header
+            doc.setFillColor(33, 147, 176); // Header background
+            doc.rect(margin, 10, cardWidth, headerHeight, 'F');
+            doc.setFontSize(headerFontSize);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(255, 255, 255); // White text
+            doc.text(headerText, pageWidth / 2, 15, { align: 'center' });
+        
+            // Add sections
+            sections.forEach(section => {
+                y = addSection(doc, section, y);
+            });
+        
+            // Add Analysis Results Report header
+            if (y + headerHeight + lineSpacing > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+            }
+            doc.setFillColor(33, 147, 176); // Header background
+            doc.rect(margin, y, cardWidth, headerHeight, 'F');
+            doc.setFontSize(headerFontSize);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(255, 255, 255); // White text
+            doc.text(headerAnalysisText, pageWidth / 2, y + 6, { align: 'center' });
+        
+            y += headerHeight + 5;
+        
+            // Add analysis sections
+            analysisSections.forEach(section => {
+                y = addSection(doc, section, y);
+            });
+        
+            // Add Average Results Report header
+            if (y + headerHeight + lineSpacing > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+            }
+            doc.setFillColor(33, 147, 176); // Header background
+            doc.rect(margin, y, cardWidth, headerHeight, 'F');
+            doc.setFontSize(headerFontSize);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(255, 255, 255); // White text
+            doc.text(headerAverageText, pageWidth / 2, y + 6, { align: 'center' });
+        
+            y += headerHeight + 5;
+        
+            // Add average sections (tables for consumption averages)
+            y = addTable(doc, 'Hourly Averages', ['Hour', 'Average (kW)'], Object.entries(consumptionAverages.hourly_avg || {}), y);
+            y = addTable(doc, 'Daily Averages', ['Day', 'Average (kW)'], Object.entries(consumptionAverages.daily_avg_by_day || {}), y);
+            y = addTable(doc, 'Weekly Averages', ['Week', 'Average (kW)'], Object.entries(consumptionAverages.weekly_avg_by_week || {}), y);
+            y = addTable(doc, 'Monthly Averages', ['Month', 'Average (kW)'], Object.entries(consumptionAverages.monthly_avg_by_month || {}), y);
+        
+            // Save the PDF
+            doc.save('Data_Summary_Report.pdf');
+        });
+        
+        
+    </script>
+{% endblock content %}

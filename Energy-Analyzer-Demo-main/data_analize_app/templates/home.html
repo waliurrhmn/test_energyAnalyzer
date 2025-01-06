@@ -1,0 +1,107 @@
+{% extends 'master/base.html' %}
+{% load static %}
+{% block content %}
+<!-- Hero Section -->
+    <section class="hero-section d-flex align-items-center">
+        <div class="container hero-content">
+            <div class="row align-items-center">
+                <div class="col-lg-6" data-aos="fade-right">
+                    <h1 class="display-4 fw-bold text-white mb-4">Transform Your Energy Data into Actionable Insights</h1>
+                    <p class="lead text-white-50 mb-5">Upload your energy consumption data and get detailed analytics with our advanced AI-powered platform.</p>
+                    <a href="upload/" class="btn btn-light cta-button shadow-lg">
+                        Start Analysis Now <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+                <div class="col-lg-6 d-none d-lg-block" data-aos="fade-left">
+                    <img src="{% static 'images\demo.png' %}" alt="Energy Analysis Dashboard" class="img-fluid rounded-3 shadow-lg floating-animation">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-6 bg-light">
+        <div class="container py-5">
+            <div class="text-center mb-5" data-aos="fade-up">
+                <h2 class="display-5 fw-bold text-primary mb-3">Powerful Features</h2>
+                <p class="lead text-muted">Discover what makes our platform unique</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-card p-4 shadow-sm h-100">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3 class="h4 mb-3">Real-time Analytics</h3>
+                        <p class="text-muted">Get instant insights into your energy consumption patterns with our advanced analytics dashboard.</p>
+                    </div>
+                </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-card p-4 shadow-sm h-100">
+                        <div class="feature-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h3 class="h4 mb-3">AI Predictions</h3>
+                        <p class="text-muted">Leverage machine learning algorithms to forecast future energy usage and optimize consumption.</p>
+                    </div>
+                </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+                    <div class="feature-card p-4 shadow-sm h-100">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-export"></i>
+                        </div>
+                        <h3 class="h4 mb-3">Custom Reports</h3>
+                        <p class="text-muted">Generate detailed reports and export your analysis in multiple formats.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section id="stats" class="stats-section">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-3" data-aos="fade-up">
+                    <div class="stat-card">
+                        <h3 class="display-4 fw-bold mb-2">99%</h3>
+                        <p class="mb-0">Accuracy Rate</p>
+                    </div>
+                </div>
+                <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
+                    <div class="stat-card">
+                        <h3 class="display-4 fw-bold mb-2">50K+</h3>
+                        <p class="mb-0">Analyses Run</p>
+                    </div>
+                </div>
+                <div class="col-md-3" data-aos="fade-up" data-aos-delay="200">
+                    <div class="stat-card">
+                        <h3 class="display-4 fw-bold mb-2">30%</h3>
+                        <p class="mb-0">Average Savings</p>
+                    </div>
+                </div>
+                <div class="col-md-3" data-aos="fade-up" data-aos-delay="300">
+                    <div class="stat-card">
+                        <h3 class="display-4 fw-bold mb-2">24/7</h3>
+                        <p class="mb-0">Support</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+<section id="contact" class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 text-center" data-aos="fade-up">
+                <h2 class="display-5 fw-bold text-primary mb-4">Ready to Get Started?</h2>
+                <p class="lead text-muted mb-5">Transform your energy consumption data into actionable insights today.</p>
+                <a href="upload/" class="btn btn-primary btn-lg cta-button shadow-lg">
+                    Start Free Analysis <i class="fas fa-rocket ms-2"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock content %}
