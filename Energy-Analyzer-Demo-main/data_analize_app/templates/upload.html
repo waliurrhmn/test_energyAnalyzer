@@ -1,5 +1,7 @@
 {% extends 'master/base.html' %}
 
+{% load static %}
+
 {% block content %}
 <style>
     /* Analysis Results Styles */
@@ -98,7 +100,9 @@
         font-weight: 600;
     }
 </style>
-
+<!--
+<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+-->
 <div class="container mt-5">
     <div class="alert alert-danger" id="errorAlert" style="display: none;">
         <h5 class="alert-heading">Error</h5>
@@ -339,8 +343,10 @@
                     }
                 </style>
                 <!-- profit calculation -->
-                <div class="container border rounded mt-5">
-                    <h5 class="text-uppercase text-center mb-3">Profit Calculator</h5>
+                <div class="card results-card mb-4">
+                    <div class="card-header">
+                        <h3>Profit Calculator</h3>
+                    </div>
                     <div class="row">
                       <!-- Left Section -->
                       <div class="col-md-6 border rounded">
@@ -412,18 +418,21 @@
                   </div>
                 
                   <!-- Chart Container -->
-                
-                <div class="container border rounded mt-5">
-
+                <div class="card results-card mb-4">
+                    <div class="card-header">
+                        <h3>Usage Chart</h3>
+                    </div>
                     <div class="chart-container">
                         <div class="row mb-3">
                             
-                            <div class="col-md-4" style="display: none;">
+                            <div class="col-md-4">
                                 <label for="timeGranularity" class="form-label">Time Granularity</label>
                                 <select class="form-select" id="timeGranularity" name="time_granularity">
                                     <option value="all">All Data</option>
                                     <option value="daily">Daily</option>
                                     <option value="hourly">Hourly</option>
+                                    <option value="datewise_hourly">Hourly-datewise</option>
+                                    <option value="hourly_intervel">Hourly-intervels</option>
                                 </select>
                             </div>
                             
@@ -438,7 +447,7 @@
                                     <option value="">Asset Chart</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" style="display: none;">
                                 <label for="timeFilter" class="form-label">Time Filter:</label>
                                 <select class="form-control" id="timeFilter" onchange="updateTimeFilter()">
                                     <option value="all">All Data</option>
@@ -549,17 +558,24 @@
                         </div>
                     </div>
                 </div>
-                <div class="container border rounded mt-5">
-                <!-- Chart Container Pricing -->
+                
+                    
+                <div class="card results-card mb-4">
+                    <div class="card-header">
+                        <h3>Pricing Chart</h3>
+                    </div>
+                    <!-- Chart Container Pricing -->
                     <div class="chart-container-pricing">
                         <div class="row mb-3">
-                            
-                            <div class="col-md-4" style="display: none;">
-                                <label for="timeGranularity" class="form-label">Time Granularity</label>
+                            <div class="col-md-4">
+                                <label for="timeGranularity_p" class="form-label">Time Granularity</label>
                                 <select class="form-select" id="timeGranularity_p" name="time_granularity_p">
                                     <option value="all">All Data</option>
                                     <option value="daily">Daily</option>
                                     <option value="hourly">Hourly</option>
+                                    <option value="datewise_hourly">Hourly-datewise</option>
+                                    
+                                    <option value="hourly_intervel">Hourly-intervels</option>
                                 </select>
                             </div>
                             
@@ -574,7 +590,7 @@
                                     <option value="">Asset Chart</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" style="display: none;">
                                 <label for="timeFilter" class="form-label">Time Filter:</label>
                                 <select class="form-control" id="timeFilter_p" onchange="updateTimeFilter()">
                                     <option value="all">All Data</option>
@@ -685,17 +701,20 @@
                     </div>
                 </div>
                 
-                <div class="container border rounded mt-5">
-                <!-- Chart Container Ceiling -->
-                    <div class="chart-container-Ceiling">
-                        <div class="row mb-3">
-                            
-                            <div class="col-md-4" style="display: none;">
-                                <label for="timeGranularity" class="form-label">Time Granularity</label>
+                <div class="card results-card mb-4">
+                    <div class="card-header">
+                        <h3>Ceiling Chart</h3>
+                    </div>
+                        <div class="chart-container-Ceiling">
+                        <div class="row mb-3">    
+                            <div class="col-md-4">
+                                <label for="timeGranularity_c" class="form-label">Time Granularity</label>
                                 <select class="form-select" id="timeGranularity_c" name="time_granularity_c">
                                     <option value="all">All Data</option>
                                     <option value="daily">Daily</option>
                                     <option value="hourly">Hourly</option>
+                                    <option value="datewise_hourly">Hourly-datewise</option>            
+                                    <option value="hourly_intervel">Hourly-intervels</option>
                                 </select>
                             </div>
                             
@@ -710,7 +729,7 @@
                                     <option value="">Asset Chart</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" style="display: none;">
                                 <label for="timeFilter" class="form-label">Time Filter:</label>
                                 <select class="form-control" id="timeFilter_c" onchange="updateTimeFilter()">
                                     <option value="all">All Data</option>
@@ -1192,6 +1211,7 @@
                 updateSummaryStatistics(filteredData);
             }
         }
+        
         function updateFilterOptions(data) {
             const labels = data.chart_data.labels;
             const startDate = new Date(labels[0]);
@@ -1325,13 +1345,26 @@
                 const quarter = document.getElementById('quarterSelect').value;
                 const month = document.getElementById('monthSelect').value;
                 const week = document.getElementById('weekSelect').value;
-                const timeGranularity = document.getElementById('timeGranularity').value;
-                const chartType = document.getElementById('ChartType').value;
+
                 
+                const timeGranularity = document.getElementById('timeGranularity').value;
+                
+                const timeGranularity_c = document.getElementById('timeGranularity_c').value;
+                const timeGranularity_p= document.getElementById('timeGranularity_p').value;
+                
+                const chartType = document.getElementById('ChartType').value;
+                //tauhid below line
+                const chartType_p = document.getElementById('ChartType_p').value;
+                //tauhid below line
+                const chartType_c = document.getElementById('ChartType_c').value;
+                
+
                 filteredData = filterDataByTime(chartData.chart_data, filterType);
 
                 // Apply additional filters to the current filtered data
                 filteredData = applyAdditionalFilters(filteredData, quarter, month, week, timeGranularity);
+                filteredData = applyAdditionalFilters(filteredData, quarter, month, week, timeGranularity_c);
+                filteredData = applyAdditionalFilters(filteredData, quarter, month, week, timeGranularity_p);
                 
                 // Store the filtered data for next filter operation
                 filtersChartData = JSON.parse(JSON.stringify(filteredData));
@@ -1409,6 +1442,12 @@
                 // Create and update chart
                 const config = createChartConfig('line', filteredData.labels, datasets, indices, chartType);
                 
+                //tauhid below line
+                const config_p = createChartConfig_p('line', filteredData.labels, datasets, indices, chartType_p);
+              //tauhid below line
+                const config_c = createChartConfig_c('line', filteredData.labels, datasets, indices, chartType_c);
+              
+
                 if (energyChart) {
                     energyChart.destroy();
                 }
@@ -1419,13 +1458,17 @@
                     energyChart_p.destroy();
                 }
                 const ctx_p = document.getElementById('energyChart_p').getContext('2d');
-                energyChart_p = new Chart(ctx_p, config);
+                //tauhid
+                energyChart_p = new Chart(ctx_p, config_p);
+
 
                 if (energyChart_c) {
                     energyChart_c.destroy();
                 }
                 const ctx_c = document.getElementById('energyChart_c').getContext('2d');
-                energyChart_c = new Chart(ctx_c, config);
+                //tauhid
+                energyChart_c = new Chart(ctx_c, config_c);
+            
                 // Update summary statistics
                 updateSummaryStatistics(filteredData);
             }
@@ -1529,64 +1572,272 @@
             
             // Apply time granularity filter
             if (timeGranularity !== 'all') {
-                if (timeGranularity === 'hourly') {
-                    // Create hourly data structure
+                if (timeGranularity === 'hourly_intervel') {
                     const hourlyData = {
-                        labels: [],
+                        labels: [], // Time intervals in 15-minute increments
                         datasets: {
                             consumption: {
                                 day_consumption: [],
-                                night_consumption: []
+                                night_consumption: [],
                             },
                             costs: {
                                 day_costs: [],
-                                night_costs: []
-                            }
-                        }
+                                night_costs: [],
+                            },
+                        },
+                        summaries: {
+                            total_day_consumption: 0,
+                            total_night_consumption: 0,
+                            total_day_cost: 0,
+                            total_night_cost: 0,
+                        },
                     };
 
-                    // Get peak hours start time
-                    const peakStart = document.getElementById('peak_start_time').value;
-                    const peakHour = parseInt(peakStart.split(':')[0]);
-                    
-                    // For each day in the filtered data
-                    filteredData.labels.forEach((date, index) => {
-                        // Generate 24 hourly data points for this day
+                    // Retrieve peak/off-peak settings from the DOM
+                    const peakStart = document.getElementById('peak_start_time')?.value || '18:00';
+                    const peakHour = parseInt(peakStart.split(':')[0], 10);
+                    const offPeakEnd = 6; // Off-peak ends at 6 AM.
+
+                    // Retrieve prices from the DOM
+                    const peakPrice = parseFloat(document.getElementById('price_high')?.value || '0.35');
+                    const offPeakPrice = parseFloat(document.getElementById('price_low')?.value || '0.25');
+
+                    // Loop through filtered data labels and calculate intervals
+                    filteredData.labels.forEach((dateStr, index) => {
+                        const date = new Date(dateStr); // Parse the date string into a Date object
+
+                        // Daily consumption from the dataset
+                        const dailyDayConsumption = filteredData.datasets.consumption.day_consumption[index] || 0;
+                        const dailyNightConsumption = filteredData.datasets.consumption.night_consumption[index] || 0;
+
+                        // Calculate per-interval consumption (15-minute intervals = 96 intervals/day)
+                        const intervalDayConsumption = dailyDayConsumption / 96;
+                        const intervalNightConsumption = dailyNightConsumption / 96;
+
+                        // Loop through 24 hours of the day
                         for (let hour = 0; hour < 24; hour++) {
-                            const hourDate = new Date(date);
-                            hourDate.setHours(hour);
-                            
-                            // Format the date as "YYYY-MM-DD HH:00"
-                            const hourLabel = `${date} ${hour.toString().padStart(2, '0')}:00`;
-                            hourlyData.labels.push(hourLabel);
+                            // Loop through 4 intervals within the hour (15-minute intervals)
+                            for (let interval = 0; interval < 4; interval++) {
+                                const intervalDate = new Date(date);
+                                intervalDate.setHours(hour, interval * 15, 0, 0); // Set the time for each interval
 
-                            // Calculate consumption based on whether it's peak or off-peak
-                            const isPeakHour = hour >= peakHour || hour < 6; // Assuming peak hours are from peakStart to 6am
-                            const dailyConsumption = isPeakHour ? 
-                                filteredData.datasets.consumption.day_consumption[index] : 
-                                filteredData.datasets.consumption.night_consumption[index];
-                            
-                            // Distribute daily consumption across hours (with some variation)
-                            const hourlyConsumption = (dailyConsumption / 24) * (0.8 + Math.random() * 0.4);
+                                const intervalLabel = intervalDate.toISOString().replace('T', ' ').slice(0, 16); // Format as "YYYY-MM-DD HH:MM"
 
-                            // Set consumption values
-                            if (isPeakHour) {
-                                hourlyData.datasets.consumption.day_consumption.push(hourlyConsumption);
-                                hourlyData.datasets.consumption.night_consumption.push(0);
-                                
-                                // Calculate costs
-                                const peakPrice = parseFloat(document.getElementById('price_high').value);
-                                hourlyData.datasets.costs.day_costs.push(hourlyConsumption * peakPrice);
-                                hourlyData.datasets.costs.night_costs.push(0);
-                            } else {
-                                hourlyData.datasets.consumption.day_consumption.push(0);
-                                hourlyData.datasets.consumption.night_consumption.push(hourlyConsumption);
-                                
-                                // Calculate costs
-                                const offPeakPrice = parseFloat(document.getElementById('price_low').value);
-                                hourlyData.datasets.costs.day_costs.push(0);
-                                hourlyData.datasets.costs.night_costs.push(hourlyConsumption * offPeakPrice);
+                                // Determine if the interval falls in peak or off-peak hours
+                                const isPeakHour = hour >= peakHour || hour < offPeakEnd;
+
+                                // Calculate interval-specific consumption and costs
+                                const currentIntervalDayConsumption = isPeakHour ? intervalDayConsumption : 0;
+                                const currentIntervalNightConsumption = isPeakHour ? 0 : intervalNightConsumption;
+
+                                const currentIntervalDayCost = currentIntervalDayConsumption * peakPrice;
+                                const currentIntervalNightCost = currentIntervalNightConsumption * offPeakPrice;
+
+                                // Push values to datasets
+                                hourlyData.labels.push(intervalLabel);
+                                hourlyData.datasets.consumption.day_consumption.push(currentIntervalDayConsumption);
+                                hourlyData.datasets.consumption.night_consumption.push(currentIntervalNightConsumption);
+                                hourlyData.datasets.costs.day_costs.push(currentIntervalDayCost);
+                                hourlyData.datasets.costs.night_costs.push(currentIntervalNightCost);
+
+                                // Update summaries
+                                hourlyData.summaries.total_day_consumption += currentIntervalDayConsumption;
+                                hourlyData.summaries.total_night_consumption += currentIntervalNightConsumption;
+                                hourlyData.summaries.total_day_cost += currentIntervalDayCost;
+                                hourlyData.summaries.total_night_cost += currentIntervalNightCost;
                             }
+                        }
+                    });
+
+                    return hourlyData;
+                } else if (timeGranularity === 'daily') {
+                    return filteredData;
+                }
+                else if (timeGranularity === 'datewise_hourly') {
+                    const hourlyData = {
+                        labels: [], // Date-wise hourly labels (e.g., ["2023-01-01 00:00", "2023-01-01 01:00"])
+                        datasets: {
+                            consumption: {
+                                total_consumption: [], // Sum of day and night consumption for the hour
+                                day_consumption: [], // Hourly day consumption
+                                night_consumption: [], // Hourly night consumption
+                            },
+                            costs: {
+                                total_costs: [], // Sum of day and night costs for the hour
+                                day_costs: [], // Hourly day costs
+                                night_costs: [], // Hourly night costs
+                            },
+                        },
+                        summaries: {
+                            total_day_consumption: 0,
+                            total_night_consumption: 0,
+                            total_day_cost: 0,
+                            total_night_cost: 0,
+                        },
+                    };
+
+                    // Retrieve peak/off-peak settings from the DOM
+                    const peakStart = document.getElementById('peak_start_time')?.value || '18:00';
+                    const peakHour = parseInt(peakStart.split(':')[0], 10);
+                    const offPeakEnd = 6; // Off-peak ends at 6 AM.
+
+                    // Retrieve prices from the DOM
+                    const peakPrice = parseFloat(document.getElementById('price_high')?.value || '0.35');
+                    const offPeakPrice = parseFloat(document.getElementById('price_low')?.value || '0.25');
+
+                    // Loop through filtered data labels and aggregate into hours
+                    filteredData.labels.forEach((dateStr, index) => {
+                        const date = new Date(dateStr); // Parse the date string into a Date object
+
+                        // Daily consumption from the dataset
+                        const dailyDayConsumption = filteredData.datasets.consumption.day_consumption[index] || 0;
+                        const dailyNightConsumption = filteredData.datasets.consumption.night_consumption[index] || 0;
+
+                        // Calculate per-interval consumption (15-minute intervals = 96 intervals/day)
+                        const intervalDayConsumption = dailyDayConsumption / 96;
+                        const intervalNightConsumption = dailyNightConsumption / 96;
+
+                        // Iterate through 24 hours of the day
+                        for (let hour = 0; hour < 24; hour++) {
+                            let hourDayConsumption = 0;
+                            let hourNightConsumption = 0;
+                            let hourDayCost = 0;
+                            let hourNightCost = 0;
+
+                            // Loop through 4 intervals within the hour (15-minute intervals)
+                            for (let interval = 0; interval < 4; interval++) {
+                                const isPeakHour = hour >= peakHour || hour < offPeakEnd;
+
+                                const currentIntervalDayConsumption = isPeakHour ? intervalDayConsumption : 0;
+                                const currentIntervalNightConsumption = isPeakHour ? 0 : intervalNightConsumption;
+
+                                const currentIntervalDayCost = currentIntervalDayConsumption * peakPrice;
+                                const currentIntervalNightCost = currentIntervalNightConsumption * offPeakPrice;
+
+                                // Accumulate consumption and costs for the hour
+                                hourDayConsumption += currentIntervalDayConsumption;
+                                hourNightConsumption += currentIntervalNightConsumption;
+                                hourDayCost += currentIntervalDayCost;
+                                hourNightCost += currentIntervalNightCost;
+                            }
+
+                            // Generate hourly label for the current date
+                            const hourlyLabel = new Date(date);
+                            hourlyLabel.setHours(hour, 0, 0, 0);
+                            hourlyData.labels.push(hourlyLabel.toISOString().replace('T', ' ').slice(0, 16)); // Format as "YYYY-MM-DD HH:MM"
+
+                            // Push summed hourly values to datasets
+                            hourlyData.datasets.consumption.total_consumption.push(hourDayConsumption + hourNightConsumption);
+                            hourlyData.datasets.consumption.day_consumption.push(hourDayConsumption);
+                            hourlyData.datasets.consumption.night_consumption.push(hourNightConsumption);
+                            hourlyData.datasets.costs.total_costs.push(hourDayCost + hourNightCost);
+                            hourlyData.datasets.costs.day_costs.push(hourDayCost);
+                            hourlyData.datasets.costs.night_costs.push(hourNightCost);
+
+                            // Update summaries
+                            hourlyData.summaries.total_day_consumption += hourDayConsumption;
+                            hourlyData.summaries.total_night_consumption += hourNightConsumption;
+                            hourlyData.summaries.total_day_cost += hourDayCost;
+                            hourlyData.summaries.total_night_cost += hourNightCost;
+                        }
+                    });
+
+                    return hourlyData;
+                } else if (timeGranularity === 'daily') {
+                    return filteredData;
+                }
+
+
+
+                else if (timeGranularity === 'hourly') {
+                    const hourlyData = {
+                        labels: [], // Time intervals in 15-minute increments
+                        datasets: {
+                            consumption: {
+                                day_consumption: [],
+                                night_consumption: [],
+                                total_consumption: [], // Sum of day and night consumption for the hour
+                            },
+                            costs: {
+                                day_costs: [],
+                                night_costs: [],
+                                total_costs: [], // Sum of day and night costs for the hour
+                            },
+                        },
+                        summaries: {
+                            total_day_consumption: 0,
+                            total_night_consumption: 0,
+                            total_day_cost: 0,
+                            total_night_cost: 0,
+                        },
+                    };
+
+                    // Retrieve peak/off-peak settings from the DOM
+                    const peakStart = document.getElementById('peak_start_time')?.value || '18:00';
+                    const peakHour = parseInt(peakStart.split(':')[0], 10);
+                    const offPeakEnd = 6; // Off-peak ends at 6 AM.
+
+                    // Retrieve prices from the DOM
+                    const peakPrice = parseFloat(document.getElementById('price_high')?.value || '0.35');
+                    const offPeakPrice = parseFloat(document.getElementById('price_low')?.value || '0.25');
+
+                    // Loop through filtered data labels and calculate intervals
+                    filteredData.labels.forEach((dateStr, index) => {
+                        const date = new Date(dateStr); // Parse the date string into a Date object
+
+                        // Daily consumption from the dataset
+                        const dailyDayConsumption = filteredData.datasets.consumption.day_consumption[index] || 0;
+                        const dailyNightConsumption = filteredData.datasets.consumption.night_consumption[index] || 0;
+
+                        // Calculate per-interval consumption (15-minute intervals = 96 intervals/day)
+                        const intervalDayConsumption = dailyDayConsumption / 96;
+                        const intervalNightConsumption = dailyNightConsumption / 96;
+
+                        // Loop through 24 hours of the day
+                        for (let hour = 0; hour < 24; hour++) {
+                            let hourDayConsumption = 0;
+                            let hourNightConsumption = 0;
+                            let hourDayCost = 0;
+                            let hourNightCost = 0;
+
+                            // Loop through 4 intervals within the hour (15-minute intervals)
+                            for (let interval = 0; interval < 4; interval++) {
+                                const isPeakHour = hour >= peakHour || hour < offPeakEnd;
+
+                                const currentIntervalDayConsumption = isPeakHour ? intervalDayConsumption : 0;
+                                const currentIntervalNightConsumption = isPeakHour ? 0 : intervalNightConsumption;
+
+                                const currentIntervalDayCost = currentIntervalDayConsumption * peakPrice;
+                                const currentIntervalNightCost = currentIntervalNightConsumption * offPeakPrice;
+
+                                // Accumulate consumption and costs for the hour
+                                hourDayConsumption += currentIntervalDayConsumption;
+                                hourNightConsumption += currentIntervalNightConsumption;
+                                hourDayCost += currentIntervalDayCost;
+                                hourNightCost += currentIntervalNightCost;
+
+                                // Add interval label for x-axis
+                                if (interval === 0) {
+                                    const intervalDate = new Date(date);
+                                    intervalDate.setHours(hour, 0, 0, 0);
+                                    const intervalLabel = intervalDate.toISOString().replace('T', ' ').slice(11, 16); // Format as "HH:MM"
+                                    hourlyData.labels.push(intervalLabel);
+                                }
+                            }
+
+                            // Push summed hourly values to datasets
+                            hourlyData.datasets.consumption.day_consumption.push(hourDayConsumption);
+                            hourlyData.datasets.consumption.night_consumption.push(hourNightConsumption);
+                            hourlyData.datasets.consumption.total_consumption.push(hourDayConsumption + hourNightConsumption);
+                            hourlyData.datasets.costs.day_costs.push(hourDayCost);
+                            hourlyData.datasets.costs.night_costs.push(hourNightCost);
+                            hourlyData.datasets.costs.total_costs.push(hourDayCost + hourNightCost);
+
+                            // Update summaries
+                            hourlyData.summaries.total_day_consumption += hourDayConsumption;
+                            hourlyData.summaries.total_night_consumption += hourNightConsumption;
+                            hourlyData.summaries.total_day_cost += hourDayCost;
+                            hourlyData.summaries.total_night_cost += hourNightCost;
                         }
                     });
 
@@ -1599,6 +1850,752 @@
             return filteredData;
         }
 
+        function applyAdditionalFilters(data, quarter, month, week, timeGranularity_p) {
+            if (!data) return data;
+        
+            // Create a copy of the data to avoid modifying the original
+            let filteredData = JSON.parse(JSON.stringify(data));
+            
+            // Helper function to get month number from date string
+            function getMonthFromDate(dateStr) {
+                // Assuming date format is "YYYY-MM-DD HH:mm" or similar
+                const monthStr = dateStr.split('-')[1];
+                return parseInt(monthStr, 10); // This will handle leading zeros correctly
+            }
+            
+            // Helper function to get week number from date string
+            function getWeekFromDate(dateStr) {
+                const date = new Date(dateStr);
+                const startOfYear = new Date(date.getFullYear(), 0, 1);
+                const days = Math.floor((date - startOfYear) / (24 * 60 * 60 * 1000));
+                const weekNumber = Math.floor(days / 7) + 1;
+                return weekNumber;
+            }
+        
+            // Apply quarter filter
+            if (quarter !== 'all') {
+                const quarterMonths = {
+                    'Q1': [1, 2, 3],
+                    'Q2': [4, 5, 6],
+                    'Q3': [7, 8, 9],
+                    'Q4': [10, 11, 12]
+                };
+                
+                const monthsToInclude = quarterMonths[quarter];
+                const indicesToKeep = [];
+                
+                filteredData.labels.forEach((label, index) => {
+                    const monthNum = getMonthFromDate(label);
+                    if (monthsToInclude.includes(monthNum)) {
+                        indicesToKeep.push(index);
+                    }
+                });
+                
+                // Filter labels and datasets based on indices to keep
+                filteredData.labels = filteredData.labels.filter((_, index) => indicesToKeep.includes(index));
+                Object.keys(filteredData.datasets.consumption).forEach(key => {
+                    filteredData.datasets.consumption[key] = filteredData.datasets.consumption[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+                Object.keys(filteredData.datasets.costs).forEach(key => {
+                    filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+            }
+        
+            // Apply month filter
+            if (month !== 'all') {
+                const monthNum = parseInt(month);
+                const indicesToKeep = [];
+                
+                filteredData.labels.forEach((label, index) => {
+                    const labelMonth = getMonthFromDate(label);
+                    if (labelMonth === monthNum) {
+                        indicesToKeep.push(index);
+                    }
+                });
+                
+                // Filter labels and datasets based on indices to keep
+                filteredData.labels = filteredData.labels.filter((_, index) => indicesToKeep.includes(index));
+                Object.keys(filteredData.datasets.consumption).forEach(key => {
+                    filteredData.datasets.consumption[key] = filteredData.datasets.consumption[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+                Object.keys(filteredData.datasets.costs).forEach(key => {
+                    filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+            }
+        
+            // Apply week filter
+            if (week !== 'all') {
+                const weekNum = parseInt(week);
+                const indicesToKeep = [];
+                
+                filteredData.labels.forEach((label, index) => {
+                    const labelWeek = getWeekFromDate(label);
+                    if (labelWeek === weekNum) {
+                        indicesToKeep.push(index);
+                    }
+                });
+                
+                // Filter labels and datasets based on indices to keep
+                filteredData.labels = filteredData.labels.filter((_, index) => indicesToKeep.includes(index));
+                Object.keys(filteredData.datasets.consumption).forEach(key => {
+                    filteredData.datasets.consumption[key] = filteredData.datasets.consumption[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+                Object.keys(filteredData.datasets.costs).forEach(key => {
+                    filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+            }
+            
+            // Apply time granularity filter
+            if (timeGranularity_p !== 'all') {
+                if (timeGranularity_p === 'hourly_intervel') {
+                    const hourlyData = {
+                        labels: [], // Time intervals in 15-minute increments
+                        datasets: {
+                            consumption: {
+                                day_consumption: [],
+                                night_consumption: [],
+                            },
+                            costs: {
+                                day_costs: [],
+                                night_costs: [],
+                            },
+                        },
+                        summaries: {
+                            total_day_consumption: 0,
+                            total_night_consumption: 0,
+                            total_day_cost: 0,
+                            total_night_cost: 0,
+                        },
+                    };
+
+                    // Retrieve peak/off-peak settings from the DOM
+                    const peakStart = document.getElementById('peak_start_time')?.value || '18:00';
+                    const peakHour = parseInt(peakStart.split(':')[0], 10);
+                    const offPeakEnd = 6; // Off-peak ends at 6 AM.
+
+                    // Retrieve prices from the DOM
+                    const peakPrice = parseFloat(document.getElementById('price_high')?.value || '0.35');
+                    const offPeakPrice = parseFloat(document.getElementById('price_low')?.value || '0.25');
+
+                    // Loop through filtered data labels and calculate intervals
+                    filteredData.labels.forEach((dateStr, index) => {
+                        const date = new Date(dateStr); // Parse the date string into a Date object
+
+                        // Daily consumption from the dataset
+                        const dailyDayConsumption = filteredData.datasets.consumption.day_consumption[index] || 0;
+                        const dailyNightConsumption = filteredData.datasets.consumption.night_consumption[index] || 0;
+
+                        // Calculate per-interval consumption (15-minute intervals = 96 intervals/day)
+                        const intervalDayConsumption = dailyDayConsumption / 96;
+                        const intervalNightConsumption = dailyNightConsumption / 96;
+
+                        // Loop through 24 hours of the day
+                        for (let hour = 0; hour < 24; hour++) {
+                            // Loop through 4 intervals within the hour (15-minute intervals)
+                            for (let interval = 0; interval < 4; interval++) {
+                                const intervalDate = new Date(date);
+                                intervalDate.setHours(hour, interval * 15, 0, 0); // Set the time for each interval
+
+                                const intervalLabel = intervalDate.toISOString().replace('T', ' ').slice(0, 16); // Format as "YYYY-MM-DD HH:MM"
+
+                                // Determine if the interval falls in peak or off-peak hours
+                                const isPeakHour = hour >= peakHour || hour < offPeakEnd;
+
+                                // Calculate interval-specific consumption and costs
+                                const currentIntervalDayConsumption = isPeakHour ? intervalDayConsumption : 0;
+                                const currentIntervalNightConsumption = isPeakHour ? 0 : intervalNightConsumption;
+
+                                const currentIntervalDayCost = currentIntervalDayConsumption * peakPrice;
+                                const currentIntervalNightCost = currentIntervalNightConsumption * offPeakPrice;
+
+                                // Push values to datasets
+                                hourlyData.labels.push(intervalLabel);
+                                hourlyData.datasets.consumption.day_consumption.push(currentIntervalDayConsumption);
+                                hourlyData.datasets.consumption.night_consumption.push(currentIntervalNightConsumption);
+                                hourlyData.datasets.costs.day_costs.push(currentIntervalDayCost);
+                                hourlyData.datasets.costs.night_costs.push(currentIntervalNightCost);
+
+                                // Update summaries
+                                hourlyData.summaries.total_day_consumption += currentIntervalDayConsumption;
+                                hourlyData.summaries.total_night_consumption += currentIntervalNightConsumption;
+                                hourlyData.summaries.total_day_cost += currentIntervalDayCost;
+                                hourlyData.summaries.total_night_cost += currentIntervalNightCost;
+                            }
+                        }
+                    });
+
+                    return hourlyData;
+                } else if (timeGranularity_p === 'daily') {
+                    return filteredData;
+                }
+                else if (timeGranularity_p === 'datewise_hourly') {
+                    const hourlyData = {
+                        labels: [], // Date-wise hourly labels (e.g., ["2023-01-01 00:00", "2023-01-01 01:00"])
+                        datasets: {
+                            consumption: {
+                                total_consumption: [], // Sum of day and night consumption for the hour
+                                day_consumption: [], // Hourly day consumption
+                                night_consumption: [], // Hourly night consumption
+                            },
+                            costs: {
+                                total_costs: [], // Sum of day and night costs for the hour
+                                day_costs: [], // Hourly day costs
+                                night_costs: [], // Hourly night costs
+                            },
+                        },
+                        summaries: {
+                            total_day_consumption: 0,
+                            total_night_consumption: 0,
+                            total_day_cost: 0,
+                            total_night_cost: 0,
+                        },
+                    };
+
+                    // Retrieve peak/off-peak settings from the DOM
+                    const peakStart = document.getElementById('peak_start_time')?.value || '18:00';
+                    const peakHour = parseInt(peakStart.split(':')[0], 10);
+                    const offPeakEnd = 6; // Off-peak ends at 6 AM.
+
+                    // Retrieve prices from the DOM
+                    const peakPrice = parseFloat(document.getElementById('price_high')?.value || '0.35');
+                    const offPeakPrice = parseFloat(document.getElementById('price_low')?.value || '0.25');
+
+                    // Loop through filtered data labels and aggregate into hours
+                    filteredData.labels.forEach((dateStr, index) => {
+                        const date = new Date(dateStr); // Parse the date string into a Date object
+
+                        // Daily consumption from the dataset
+                        const dailyDayConsumption = filteredData.datasets.consumption.day_consumption[index] || 0;
+                        const dailyNightConsumption = filteredData.datasets.consumption.night_consumption[index] || 0;
+
+                        // Calculate per-interval consumption (15-minute intervals = 96 intervals/day)
+                        const intervalDayConsumption = dailyDayConsumption / 96;
+                        const intervalNightConsumption = dailyNightConsumption / 96;
+
+                        // Iterate through 24 hours of the day
+                        for (let hour = 0; hour < 24; hour++) {
+                            let hourDayConsumption = 0;
+                            let hourNightConsumption = 0;
+                            let hourDayCost = 0;
+                            let hourNightCost = 0;
+
+                            // Loop through 4 intervals within the hour (15-minute intervals)
+                            for (let interval = 0; interval < 4; interval++) {
+                                const isPeakHour = hour >= peakHour || hour < offPeakEnd;
+
+                                const currentIntervalDayConsumption = isPeakHour ? intervalDayConsumption : 0;
+                                const currentIntervalNightConsumption = isPeakHour ? 0 : intervalNightConsumption;
+
+                                const currentIntervalDayCost = currentIntervalDayConsumption * peakPrice;
+                                const currentIntervalNightCost = currentIntervalNightConsumption * offPeakPrice;
+
+                                // Accumulate consumption and costs for the hour
+                                hourDayConsumption += currentIntervalDayConsumption;
+                                hourNightConsumption += currentIntervalNightConsumption;
+                                hourDayCost += currentIntervalDayCost;
+                                hourNightCost += currentIntervalNightCost;
+                            }
+
+                            // Generate hourly label for the current date
+                            const hourlyLabel = new Date(date);
+                            hourlyLabel.setHours(hour, 0, 0, 0);
+                            hourlyData.labels.push(hourlyLabel.toISOString().replace('T', ' ').slice(0, 16)); // Format as "YYYY-MM-DD HH:MM"
+
+                            // Push summed hourly values to datasets
+                            hourlyData.datasets.consumption.total_consumption.push(hourDayConsumption + hourNightConsumption);
+                            hourlyData.datasets.consumption.day_consumption.push(hourDayConsumption);
+                            hourlyData.datasets.consumption.night_consumption.push(hourNightConsumption);
+                            hourlyData.datasets.costs.total_costs.push(hourDayCost + hourNightCost);
+                            hourlyData.datasets.costs.day_costs.push(hourDayCost);
+                            hourlyData.datasets.costs.night_costs.push(hourNightCost);
+
+                            // Update summaries
+                            hourlyData.summaries.total_day_consumption += hourDayConsumption;
+                            hourlyData.summaries.total_night_consumption += hourNightConsumption;
+                            hourlyData.summaries.total_day_cost += hourDayCost;
+                            hourlyData.summaries.total_night_cost += hourNightCost;
+                        }
+                    });
+
+                    return hourlyData;
+                } else if (timeGranularity_p === 'daily') {
+                    return filteredData;
+                }
+                else if (timeGranularity_p === 'hourly') {
+                    const hourlyData = {
+                        labels: [], // Time intervals in 15-minute increments
+                        datasets: {
+                            consumption: {
+                                day_consumption: [],
+                                night_consumption: [],
+                                total_consumption: [], // Sum of day and night consumption for the hour
+                            },
+                            costs: {
+                                day_costs: [],
+                                night_costs: [],
+                                total_costs: [], // Sum of day and night costs for the hour
+                            },
+                        },
+                        summaries: {
+                            total_day_consumption: 0,
+                            total_night_consumption: 0,
+                            total_day_cost: 0,
+                            total_night_cost: 0,
+                        },
+                    };
+
+                    // Retrieve peak/off-peak settings from the DOM
+                    const peakStart = document.getElementById('peak_start_time')?.value || '18:00';
+                    const peakHour = parseInt(peakStart.split(':')[0], 10);
+                    const offPeakEnd = 6; // Off-peak ends at 6 AM.
+
+                    // Retrieve prices from the DOM
+                    const peakPrice = parseFloat(document.getElementById('price_high')?.value || '0.35');
+                    const offPeakPrice = parseFloat(document.getElementById('price_low')?.value || '0.25');
+
+                    // Loop through filtered data labels and calculate intervals
+                    filteredData.labels.forEach((dateStr, index) => {
+                        const date = new Date(dateStr); // Parse the date string into a Date object
+
+                        // Daily consumption from the dataset
+                        const dailyDayConsumption = filteredData.datasets.consumption.day_consumption[index] || 0;
+                        const dailyNightConsumption = filteredData.datasets.consumption.night_consumption[index] || 0;
+
+                        // Calculate per-interval consumption (15-minute intervals = 96 intervals/day)
+                        const intervalDayConsumption = dailyDayConsumption / 96;
+                        const intervalNightConsumption = dailyNightConsumption / 96;
+
+                        // Loop through 24 hours of the day
+                        for (let hour = 0; hour < 24; hour++) {
+                            let hourDayConsumption = 0;
+                            let hourNightConsumption = 0;
+                            let hourDayCost = 0;
+                            let hourNightCost = 0;
+
+                            // Loop through 4 intervals within the hour (15-minute intervals)
+                            for (let interval = 0; interval < 4; interval++) {
+                                const isPeakHour = hour >= peakHour || hour < offPeakEnd;
+
+                                const currentIntervalDayConsumption = isPeakHour ? intervalDayConsumption : 0;
+                                const currentIntervalNightConsumption = isPeakHour ? 0 : intervalNightConsumption;
+
+                                const currentIntervalDayCost = currentIntervalDayConsumption * peakPrice;
+                                const currentIntervalNightCost = currentIntervalNightConsumption * offPeakPrice;
+
+                                // Accumulate consumption and costs for the hour
+                                hourDayConsumption += currentIntervalDayConsumption;
+                                hourNightConsumption += currentIntervalNightConsumption;
+                                hourDayCost += currentIntervalDayCost;
+                                hourNightCost += currentIntervalNightCost;
+
+                                // Add interval label for x-axis
+                                if (interval === 0) {
+                                    const intervalDate = new Date(date);
+                                    intervalDate.setHours(hour, 0, 0, 0);
+                                    const intervalLabel = intervalDate.toISOString().replace('T', ' ').slice(11, 16); // Format as "HH:MM"
+                                    hourlyData.labels.push(intervalLabel);
+                                }
+                            }
+
+                            // Push summed hourly values to datasets
+                            hourlyData.datasets.consumption.day_consumption.push(hourDayConsumption);
+                            hourlyData.datasets.consumption.night_consumption.push(hourNightConsumption);
+                            hourlyData.datasets.consumption.total_consumption.push(hourDayConsumption + hourNightConsumption);
+                            hourlyData.datasets.costs.day_costs.push(hourDayCost);
+                            hourlyData.datasets.costs.night_costs.push(hourNightCost);
+                            hourlyData.datasets.costs.total_costs.push(hourDayCost + hourNightCost);
+
+                            // Update summaries
+                            hourlyData.summaries.total_day_consumption += hourDayConsumption;
+                            hourlyData.summaries.total_night_consumption += hourNightConsumption;
+                            hourlyData.summaries.total_day_cost += hourDayCost;
+                            hourlyData.summaries.total_night_cost += hourNightCost;
+                        }
+                    });
+
+                    return hourlyData;
+                } else if (timeGranularity === 'daily') {
+                    return filteredData;
+                }
+            }
+            
+            return filteredData;
+        }
+
+
+        function applyAdditionalFilters(data, quarter, month, week, timeGranularity_c) {
+            if (!data) return data;
+        
+            // Create a copy of the data to avoid modifying the original
+            let filteredData = JSON.parse(JSON.stringify(data));
+            
+            // Helper function to get month number from date string
+            function getMonthFromDate(dateStr) {
+                // Assuming date format is "YYYY-MM-DD HH:mm" or similar
+                const monthStr = dateStr.split('-')[1];
+                return parseInt(monthStr, 10); // This will handle leading zeros correctly
+            }
+            
+            // Helper function to get week number from date string
+            function getWeekFromDate(dateStr) {
+                const date = new Date(dateStr);
+                const startOfYear = new Date(date.getFullYear(), 0, 1);
+                const days = Math.floor((date - startOfYear) / (24 * 60 * 60 * 1000));
+                const weekNumber = Math.floor(days / 7) + 1;
+                return weekNumber;
+            }
+        
+            // Apply quarter filter
+            if (quarter !== 'all') {
+                const quarterMonths = {
+                    'Q1': [1, 2, 3],
+                    'Q2': [4, 5, 6],
+                    'Q3': [7, 8, 9],
+                    'Q4': [10, 11, 12]
+                };
+                
+                const monthsToInclude = quarterMonths[quarter];
+                const indicesToKeep = [];
+                
+                filteredData.labels.forEach((label, index) => {
+                    const monthNum = getMonthFromDate(label);
+                    if (monthsToInclude.includes(monthNum)) {
+                        indicesToKeep.push(index);
+                    }
+                });
+                
+                // Filter labels and datasets based on indices to keep
+                filteredData.labels = filteredData.labels.filter((_, index) => indicesToKeep.includes(index));
+                Object.keys(filteredData.datasets.consumption).forEach(key => {
+                    filteredData.datasets.consumption[key] = filteredData.datasets.consumption[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+                Object.keys(filteredData.datasets.costs).forEach(key => {
+                    filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+            }
+        
+            // Apply month filter
+            if (month !== 'all') {
+                const monthNum = parseInt(month);
+                const indicesToKeep = [];
+                
+                filteredData.labels.forEach((label, index) => {
+                    const labelMonth = getMonthFromDate(label);
+                    if (labelMonth === monthNum) {
+                        indicesToKeep.push(index);
+                    }
+                });
+                
+                // Filter labels and datasets based on indices to keep
+                filteredData.labels = filteredData.labels.filter((_, index) => indicesToKeep.includes(index));
+                Object.keys(filteredData.datasets.consumption).forEach(key => {
+                    filteredData.datasets.consumption[key] = filteredData.datasets.consumption[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+                Object.keys(filteredData.datasets.costs).forEach(key => {
+                    filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+            }
+        
+            // Apply week filter
+            if (week !== 'all') {
+                const weekNum = parseInt(week);
+                const indicesToKeep = [];
+                
+                filteredData.labels.forEach((label, index) => {
+                    const labelWeek = getWeekFromDate(label);
+                    if (labelWeek === weekNum) {
+                        indicesToKeep.push(index);
+                    }
+                });
+                
+                // Filter labels and datasets based on indices to keep
+                filteredData.labels = filteredData.labels.filter((_, index) => indicesToKeep.includes(index));
+                Object.keys(filteredData.datasets.consumption).forEach(key => {
+                    filteredData.datasets.consumption[key] = filteredData.datasets.consumption[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+                Object.keys(filteredData.datasets.costs).forEach(key => {
+                    filteredData.datasets.costs[key] = filteredData.datasets.costs[key].filter((_, index) => indicesToKeep.includes(index));
+                });
+            }
+            
+            // Apply time granularity filter
+            if (timeGranularity_c !== 'all') {
+                if (timeGranularity_c === 'hourly_intervel') {
+                    const hourlyData = {
+                        labels: [], // Time intervals in 15-minute increments
+                        datasets: {
+                            consumption: {
+                                day_consumption: [],
+                                night_consumption: [],
+                            },
+                            costs: {
+                                day_costs: [],
+                                night_costs: [],
+                            },
+                        },
+                        summaries: {
+                            total_day_consumption: 0,
+                            total_night_consumption: 0,
+                            total_day_cost: 0,
+                            total_night_cost: 0,
+                        },
+                    };
+
+                    // Retrieve peak/off-peak settings from the DOM
+                    const peakStart = document.getElementById('peak_start_time')?.value || '18:00';
+                    const peakHour = parseInt(peakStart.split(':')[0], 10);
+                    const offPeakEnd = 6; // Off-peak ends at 6 AM.
+
+                    // Retrieve prices from the DOM
+                    const peakPrice = parseFloat(document.getElementById('price_high')?.value || '0.35');
+                    const offPeakPrice = parseFloat(document.getElementById('price_low')?.value || '0.25');
+
+                    // Loop through filtered data labels and calculate intervals
+                    filteredData.labels.forEach((dateStr, index) => {
+                        const date = new Date(dateStr); // Parse the date string into a Date object
+
+                        // Daily consumption from the dataset
+                        const dailyDayConsumption = filteredData.datasets.consumption.day_consumption[index] || 0;
+                        const dailyNightConsumption = filteredData.datasets.consumption.night_consumption[index] || 0;
+
+                        // Calculate per-interval consumption (15-minute intervals = 96 intervals/day)
+                        const intervalDayConsumption = dailyDayConsumption / 96;
+                        const intervalNightConsumption = dailyNightConsumption / 96;
+
+                        // Loop through 24 hours of the day
+                        for (let hour = 0; hour < 24; hour++) {
+                            // Loop through 4 intervals within the hour (15-minute intervals)
+                            for (let interval = 0; interval < 4; interval++) {
+                                const intervalDate = new Date(date);
+                                intervalDate.setHours(hour, interval * 15, 0, 0); // Set the time for each interval
+
+                                const intervalLabel = intervalDate.toISOString().replace('T', ' ').slice(0, 16); // Format as "YYYY-MM-DD HH:MM"
+
+                                // Determine if the interval falls in peak or off-peak hours
+                                const isPeakHour = hour >= peakHour || hour < offPeakEnd;
+
+                                // Calculate interval-specific consumption and costs
+                                const currentIntervalDayConsumption = isPeakHour ? intervalDayConsumption : 0;
+                                const currentIntervalNightConsumption = isPeakHour ? 0 : intervalNightConsumption;
+
+                                const currentIntervalDayCost = currentIntervalDayConsumption * peakPrice;
+                                const currentIntervalNightCost = currentIntervalNightConsumption * offPeakPrice;
+
+                                // Push values to datasets
+                                hourlyData.labels.push(intervalLabel);
+                                hourlyData.datasets.consumption.day_consumption.push(currentIntervalDayConsumption);
+                                hourlyData.datasets.consumption.night_consumption.push(currentIntervalNightConsumption);
+                                hourlyData.datasets.costs.day_costs.push(currentIntervalDayCost);
+                                hourlyData.datasets.costs.night_costs.push(currentIntervalNightCost);
+
+                                // Update summaries
+                                hourlyData.summaries.total_day_consumption += currentIntervalDayConsumption;
+                                hourlyData.summaries.total_night_consumption += currentIntervalNightConsumption;
+                                hourlyData.summaries.total_day_cost += currentIntervalDayCost;
+                                hourlyData.summaries.total_night_cost += currentIntervalNightCost;
+                            }
+                        }
+                    });
+
+                    return hourlyData;
+                } else if (timeGranularity_c === 'daily') {
+                    return filteredData;
+                }
+                else if (timeGranularity_c === 'datewise_hourly') {
+                    const hourlyData = {
+                        labels: [], // Date-wise hourly labels (e.g., ["2023-01-01 00:00", "2023-01-01 01:00"])
+                        datasets: {
+                            consumption: {
+                                total_consumption: [], // Sum of day and night consumption for the hour
+                                day_consumption: [], // Hourly day consumption
+                                night_consumption: [], // Hourly night consumption
+                            },
+                            costs: {
+                                total_costs: [], // Sum of day and night costs for the hour
+                                day_costs: [], // Hourly day costs
+                                night_costs: [], // Hourly night costs
+                            },
+                        },
+                        summaries: {
+                            total_day_consumption: 0,
+                            total_night_consumption: 0,
+                            total_day_cost: 0,
+                            total_night_cost: 0,
+                        },
+                    };
+
+                    // Retrieve peak/off-peak settings from the DOM
+                    const peakStart = document.getElementById('peak_start_time')?.value || '18:00';
+                    const peakHour = parseInt(peakStart.split(':')[0], 10);
+                    const offPeakEnd = 6; // Off-peak ends at 6 AM.
+
+                    // Retrieve prices from the DOM
+                    const peakPrice = parseFloat(document.getElementById('price_high')?.value || '0.35');
+                    const offPeakPrice = parseFloat(document.getElementById('price_low')?.value || '0.25');
+
+                    // Loop through filtered data labels and aggregate into hours
+                    filteredData.labels.forEach((dateStr, index) => {
+                        const date = new Date(dateStr); // Parse the date string into a Date object
+
+                        // Daily consumption from the dataset
+                        const dailyDayConsumption = filteredData.datasets.consumption.day_consumption[index] || 0;
+                        const dailyNightConsumption = filteredData.datasets.consumption.night_consumption[index] || 0;
+
+                        // Calculate per-interval consumption (15-minute intervals = 96 intervals/day)
+                        const intervalDayConsumption = dailyDayConsumption / 96;
+                        const intervalNightConsumption = dailyNightConsumption / 96;
+
+                        // Iterate through 24 hours of the day
+                        for (let hour = 0; hour < 24; hour++) {
+                            let hourDayConsumption = 0;
+                            let hourNightConsumption = 0;
+                            let hourDayCost = 0;
+                            let hourNightCost = 0;
+
+                            // Loop through 4 intervals within the hour (15-minute intervals)
+                            for (let interval = 0; interval < 4; interval++) {
+                                const isPeakHour = hour >= peakHour || hour < offPeakEnd;
+
+                                const currentIntervalDayConsumption = isPeakHour ? intervalDayConsumption : 0;
+                                const currentIntervalNightConsumption = isPeakHour ? 0 : intervalNightConsumption;
+
+                                const currentIntervalDayCost = currentIntervalDayConsumption * peakPrice;
+                                const currentIntervalNightCost = currentIntervalNightConsumption * offPeakPrice;
+
+                                // Accumulate consumption and costs for the hour
+                                hourDayConsumption += currentIntervalDayConsumption;
+                                hourNightConsumption += currentIntervalNightConsumption;
+                                hourDayCost += currentIntervalDayCost;
+                                hourNightCost += currentIntervalNightCost;
+                            }
+
+                            // Generate hourly label for the current date
+                            const hourlyLabel = new Date(date);
+                            hourlyLabel.setHours(hour, 0, 0, 0);
+                            hourlyData.labels.push(hourlyLabel.toISOString().replace('T', ' ').slice(0, 16)); // Format as "YYYY-MM-DD HH:MM"
+
+                            // Push summed hourly values to datasets
+                            hourlyData.datasets.consumption.total_consumption.push(hourDayConsumption + hourNightConsumption);
+                            hourlyData.datasets.consumption.day_consumption.push(hourDayConsumption);
+                            hourlyData.datasets.consumption.night_consumption.push(hourNightConsumption);
+                            hourlyData.datasets.costs.total_costs.push(hourDayCost + hourNightCost);
+                            hourlyData.datasets.costs.day_costs.push(hourDayCost);
+                            hourlyData.datasets.costs.night_costs.push(hourNightCost);
+
+                            // Update summaries
+                            hourlyData.summaries.total_day_consumption += hourDayConsumption;
+                            hourlyData.summaries.total_night_consumption += hourNightConsumption;
+                            hourlyData.summaries.total_day_cost += hourDayCost;
+                            hourlyData.summaries.total_night_cost += hourNightCost;
+                        }
+                    });
+
+                    return hourlyData;
+                } else if (timeGranularity_c === 'daily') {
+                    return filteredData;
+                }
+                else if (timeGranularity_c === 'hourly') {
+                    const hourlyData = {
+                        labels: [], // Time intervals in 15-minute increments
+                        datasets: {
+                            consumption: {
+                                day_consumption: [],
+                                night_consumption: [],
+                                total_consumption: [], // Sum of day and night consumption for the hour
+                            },
+                            costs: {
+                                day_costs: [],
+                                night_costs: [],
+                                total_costs: [], // Sum of day and night costs for the hour
+                            },
+                        },
+                        summaries: {
+                            total_day_consumption: 0,
+                            total_night_consumption: 0,
+                            total_day_cost: 0,
+                            total_night_cost: 0,
+                        },
+                    };
+
+                    // Retrieve peak/off-peak settings from the DOM
+                    const peakStart = document.getElementById('peak_start_time')?.value || '18:00';
+                    const peakHour = parseInt(peakStart.split(':')[0], 10);
+                    const offPeakEnd = 6; // Off-peak ends at 6 AM.
+
+                    // Retrieve prices from the DOM
+                    const peakPrice = parseFloat(document.getElementById('price_high')?.value || '0.35');
+                    const offPeakPrice = parseFloat(document.getElementById('price_low')?.value || '0.25');
+
+                    // Loop through filtered data labels and calculate intervals
+                    filteredData.labels.forEach((dateStr, index) => {
+                        const date = new Date(dateStr); // Parse the date string into a Date object
+
+                        // Daily consumption from the dataset
+                        const dailyDayConsumption = filteredData.datasets.consumption.day_consumption[index] || 0;
+                        const dailyNightConsumption = filteredData.datasets.consumption.night_consumption[index] || 0;
+
+                        // Calculate per-interval consumption (15-minute intervals = 96 intervals/day)
+                        const intervalDayConsumption = dailyDayConsumption / 96;
+                        const intervalNightConsumption = dailyNightConsumption / 96;
+
+                        // Loop through 24 hours of the day
+                        for (let hour = 0; hour < 24; hour++) {
+                            let hourDayConsumption = 0;
+                            let hourNightConsumption = 0;
+                            let hourDayCost = 0;
+                            let hourNightCost = 0;
+
+                            // Loop through 4 intervals within the hour (15-minute intervals)
+                            for (let interval = 0; interval < 4; interval++) {
+                                const isPeakHour = hour >= peakHour || hour < offPeakEnd;
+
+                                const currentIntervalDayConsumption = isPeakHour ? intervalDayConsumption : 0;
+                                const currentIntervalNightConsumption = isPeakHour ? 0 : intervalNightConsumption;
+
+                                const currentIntervalDayCost = currentIntervalDayConsumption * peakPrice;
+                                const currentIntervalNightCost = currentIntervalNightConsumption * offPeakPrice;
+
+                                // Accumulate consumption and costs for the hour
+                                hourDayConsumption += currentIntervalDayConsumption;
+                                hourNightConsumption += currentIntervalNightConsumption;
+                                hourDayCost += currentIntervalDayCost;
+                                hourNightCost += currentIntervalNightCost;
+
+                                // Add interval label for x-axis
+                                if (interval === 0) {
+                                    const intervalDate = new Date(date);
+                                    intervalDate.setHours(hour, 0, 0, 0);
+                                    const intervalLabel = intervalDate.toISOString().replace('T', ' ').slice(11, 16); // Format as "HH:MM"
+                                    hourlyData.labels.push(intervalLabel);
+                                }
+                            }
+
+                            // Push summed hourly values to datasets
+                            hourlyData.datasets.consumption.day_consumption.push(hourDayConsumption);
+                            hourlyData.datasets.consumption.night_consumption.push(hourNightConsumption);
+                            hourlyData.datasets.consumption.total_consumption.push(hourDayConsumption + hourNightConsumption);
+                            hourlyData.datasets.costs.day_costs.push(hourDayCost);
+                            hourlyData.datasets.costs.night_costs.push(hourNightCost);
+                            hourlyData.datasets.costs.total_costs.push(hourDayCost + hourNightCost);
+
+                            // Update summaries
+                            hourlyData.summaries.total_day_consumption += hourDayConsumption;
+                            hourlyData.summaries.total_night_consumption += hourNightConsumption;
+                            hourlyData.summaries.total_day_cost += hourDayCost;
+                            hourlyData.summaries.total_night_cost += hourNightCost;
+                        }
+                    });
+
+                    return hourlyData;
+                } else if (timeGranularity_c === 'daily') {
+                    return filteredData;
+                }
+            }
+            
+            return filteredData;
+        }
+        
+
         // reset and update other filters
         function resetOtherFilters(currentFilter) {
             const filters = {
@@ -1606,15 +2603,17 @@
                 'quarterSelect': document.getElementById('quarterSelect'),
                 'monthSelect': document.getElementById('monthSelect'),
                 'weekSelect': document.getElementById('weekSelect'),
-                //'timeGranularity': document.getElementById('timeGranularity')
+                'timeGranularity': document.getElementById('timeGranularity'),
+                'timeGranularity_c': document.getElementById('timeGranularity_c'),
+                'timeGranularity_p': document.getElementById('timeGranularity_p')
+                
             };
-            
-            // Reset all filters except the current one
-            Object.entries(filters).forEach(([id, element]) => {
-                if (element.id !== currentFilter) {
-                    element.value = 'all';
-                }
-            });
+            //tauhid// Reset all filters except the current one
+            //Object.entries(filters).forEach(([id, element]) => {
+            //    if (element.id !== currentFilter) {
+            //        element.value = 'all';
+            //    }
+           // });
         }
 
         function resetAllFilters(currentFilter) {
@@ -1630,7 +2629,6 @@
             Object.entries(filters).forEach(([id, element]) => {
                     element.value = 'all';
             });
-
             document.getElementById('peak-price').value = ''
             document.getElementById('off-peak-price').value = ''
         }
@@ -1661,6 +2659,20 @@
             updateChartType();
         });
 
+        
+        document.getElementById('timeGranularity_p').addEventListener('change', function() {
+            resetOtherFilters('timeGranularity_p');
+            updateChartType();
+        });
+
+        
+        document.getElementById('timeGranularity_c').addEventListener('change', function() {
+            resetOtherFilters('timeGranularity_c');
+            updateChartType();
+        });
+
+
+
         // Add event listener for ceiling value changes
         document.getElementById('kwh_ceiling').addEventListener('change', function(event) {
             updateChartType();
@@ -1670,6 +2682,11 @@
             updateChartType();
         });
         
+        //tauhid below line 
+        document.getElementById('ChartType_p').addEventListener('change', updateChartType);
+        //tauhid below line
+        document.getElementById('ChartType_c').addEventListener('change', updateChartType);
+      
         document.getElementById('peak-price').addEventListener('input', function(event) {            
             setProfitValueToProfitCalculatorSection(event.target.value, 'peak')
         });
@@ -1734,6 +2751,216 @@
 
         function createChartConfig(chartType, labels, datasets, indices, chartClassification='all') {                        
             // Calculate the positions for all annotations
+            const points = {
+                highPeak: {
+                    x: labels[indices.highestPeakIndex],
+                    y: datasets[0].data[indices.highestPeakIndex],
+                    color: 'rgba(255, 99, 132, 0.8)'
+                },
+                lowPeak: {
+                    x: labels[indices.lowestPeakIndex],
+                    y: datasets[0].data[indices.lowestPeakIndex],
+                    color: 'rgba(255, 99, 132, 0.8)'
+                },
+                highOffPeak: {
+                    x: labels[indices.highestOffPeakIndex],
+                    y: datasets[1].data[indices.highestOffPeakIndex],
+                    color: 'rgba(54, 162, 235, 0.8)'
+                },
+                lowOffPeak: {
+                    x: labels[indices.lowestOffPeakIndex],
+                    y: datasets[1].data[indices.lowestOffPeakIndex],
+                    color: 'rgba(54, 162, 235, 0.8)'
+                }
+            };            
+        
+            // Define all annotations including the ceiling
+            let annotations = {
+                highestPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.highPeak.x,
+                    yValue: points.highPeak.y,
+                    backgroundColor: points.highPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Highest Peak',
+                        position: 'top'
+                    }
+                },
+                lowestPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.lowPeak.x,
+                    yValue: points.lowPeak.y,
+                    backgroundColor: points.lowPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Lowest Peak',
+                        position: 'bottom'
+                    }
+                },
+                highestOffPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.highOffPeak.x,
+                    yValue: points.highOffPeak.y,
+                    backgroundColor: points.highOffPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Highest Off-Peak',
+                        position: 'top'
+                    }
+                },
+                lowestOffPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.lowOffPeak.x,
+                    yValue: points.lowOffPeak.y,
+                    backgroundColor: points.lowOffPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Lowest Off-Peak',
+                        position: 'bottom'
+                    }
+                },
+                ceiling: {
+                    type: 'line',
+                    yMin: calculateAdjustedCeiling(),
+                    yMax: calculateAdjustedCeiling(),
+                    borderColor: 'rgba(255, 0, 0, 0.8)',
+                    borderWidth: 3,
+                    borderDash: [10, 5],
+                    yScaleID: 'consumption', // Changed from scaleID to yScaleID
+                    label: {
+                        display: true,
+                        content: `Ceiling: ${formatEUNumber(calculateAdjustedCeiling())} kW`,
+                        position: 'start',
+                        backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: 6
+                    }
+                }
+            };           
+
+            if (chartClassification==='usageChart') {
+                 datasets = datasets.filter(
+                     (item) => item.label==='Peak Hours Consumption (kW)'
+                     || item.label === 'Off-Peak Hours Consumption (kW)'
+                     ||  item.label === 'Total Consumption (kW)'
+                 )
+            } else if (chartClassification==='pricingChart') {
+                datasets = datasets.filter(
+
+                    (item) => item.label==='Peak Hours Cost (€)'
+                    || item.label === 'Off-Peak Hours Cost (€)'
+                )
+                annotations = {}
+            } else if(chartClassification==='ceiling') {
+                // datasets = datasets.filter((item) => item.label==='Total Consumption (kW)')
+                datasets = []
+                annotations = { ceiling: annotations.ceiling};
+            }
+            
+            return {
+                type: chartType === 'mixed' ? 'bar' : chartType,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        consumption: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Energy Consumption (kW)'
+                            }
+                        },
+                        cost: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Cost (€)'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: annotations  // Use the annotations object defined above
+                        },
+                        title: {
+                            display: true,
+                            text: 'Daily Energy Consumption and Costs'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += formatEUNumber(context.parsed.y);
+                                    return label;
+                                },
+                                afterLabel: function(context) {
+                                    const priceHigh = parseFloat(document.getElementById('price_high').value);
+                                    const priceLow = parseFloat(document.getElementById('price_low').value);
+                                    
+                                    if (context.raw === points.highPeak.y && context.label === points.highPeak.x) {
+                                        return `- Peak Hours(Highest Daily)\n  Usage: ${formatEUNumber(points.highPeak.y)} kW / Cost: €${formatEUNumber(points.highPeak.y * priceHigh)}`;
+                                    }
+                                    if (context.raw === points.lowPeak.y && context.label === points.lowPeak.x) {
+                                        return `- Peak Hours(Highest Daily)\n  Usage: ${formatEUNumber(points.lowPeak.y)} kW / Cost: €${formatEUNumber(points.lowPeak.y * priceHigh)}`;
+                                    }
+                                    if (context.raw === points.highOffPeak.y && context.label === points.highOffPeak.x) {
+                                        return `- Off Peak(Highest Daily)\n  Usage: ${formatEUNumber(points.highOffPeak.y)} kW / Cost: €${formatEUNumber(points.highOffPeak.y * priceLow)}`;
+                                    }
+                                    if (context.raw === points.lowOffPeak.y && context.label === points.lowOffPeak.x) {
+                                        return `- Off Peak(Highest Daily)\n  Usage: ${formatEUNumber(points.lowOffPeak.y)} kW / Cost: €${formatEUNumber(points.lowOffPeak.y * priceLow)}`;
+                                    }
+                                    return '';
+                                }
+                                
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        
+
+///tauhid pricing chart config function
+
+function createChartConfig_p(chartType, labels, datasets, indices, chartClassification='pricingChart') {                        
+            // Calculate the positions for all annotations 
             const points = {
                 highPeak: {
                     x: labels[indices.highestPeakIndex],
@@ -1937,6 +3164,424 @@
             };
         }
 
+       
+        //tauhid ceiling chart config function
+
+function createChartConfig_c(chartType, labels, datasets, indices, chartClassification='ceiling') {                        
+            // Calculate the positions for all annotations 
+            const points = {
+                highPeak: {
+                    x: labels[indices.highestPeakIndex],
+                    y: datasets[0].data[indices.highestPeakIndex],
+                    color: 'rgba(255, 99, 132, 0.8)'
+                },
+                lowPeak: {
+                    x: labels[indices.lowestPeakIndex],
+                    y: datasets[0].data[indices.lowestPeakIndex],
+                    color: 'rgba(255, 99, 132, 0.8)'
+                },
+                highOffPeak: {
+                    x: labels[indices.highestOffPeakIndex],
+                    y: datasets[1].data[indices.highestOffPeakIndex],
+                    color: 'rgba(54, 162, 235, 0.8)'
+                },
+                lowOffPeak: {
+                    x: labels[indices.lowestOffPeakIndex],
+                    y: datasets[1].data[indices.lowestOffPeakIndex],
+                    color: 'rgba(54, 162, 235, 0.8)'
+                }
+            };            
+        
+            // Define all annotations including the ceiling
+            let annotations = {
+                highestPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.highPeak.x,
+                    yValue: points.highPeak.y,
+                    backgroundColor: points.highPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Highest Peak',
+                        position: 'top'
+                    }
+                },
+                lowestPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.lowPeak.x,
+                    yValue: points.lowPeak.y,
+                    backgroundColor: points.lowPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Lowest Peak',
+                        position: 'bottom'
+                    }
+                },
+                highestOffPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.highOffPeak.x,
+                    yValue: points.highOffPeak.y,
+                    backgroundColor: points.highOffPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Highest Off-Peak',
+                        position: 'top'
+                    }
+                },
+                lowestOffPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.lowOffPeak.x,
+                    yValue: points.lowOffPeak.y,
+                    backgroundColor: points.lowOffPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Lowest Off-Peak',
+                        position: 'bottom'
+                    }
+                },
+                ceiling: {
+                    type: 'line',
+                    yMin: calculateAdjustedCeiling(),
+                    yMax: calculateAdjustedCeiling(),
+                    borderColor: 'rgba(255, 0, 0, 0.8)',
+                    borderWidth: 3,
+                    borderDash: [10, 5],
+                    yScaleID: 'consumption', // Changed from scaleID to yScaleID
+                    label: {
+                        display: true,
+                        content: `Ceiling: ${formatEUNumber(calculateAdjustedCeiling())} kW`,
+                        position: 'start',
+                        backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: 6
+                    }
+                }
+            };           
+
+            if (chartClassification==='usageChart') {
+                 datasets = datasets.filter(
+                     (item) => item.label==='Peak Hours Consumption (kW)'
+                     || item.label === 'Off-Peak Hours Consumption (kW)'
+                     ||  item.label === 'Total Consumption (kW)'
+                 )
+            } else if (chartClassification==='pricingChart') {
+                datasets = datasets.filter(
+                    (item) => item.label==='Peak Hours Cost (€)'
+                    || item.label === 'Off-Peak Hours Cost (€)'
+                )
+                annotations = {}
+            } else if(chartClassification==='ceiling') {
+                // datasets = datasets.filter((item) => item.label==='Total Consumption (kW)')
+                datasets = []
+                annotations = { ceiling: annotations.ceiling};
+            }
+            
+            return {
+                type: chartType === 'mixed' ? 'bar' : chartType,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        consumption: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Energy Consumption (kW)'
+                            }
+                        },
+                        cost: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Cost (€)'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: annotations  // Use the annotations object defined above
+                        },
+                        title: {
+                            display: true,
+                            text: 'Daily Energy Consumption and Costs'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += formatEUNumber(context.parsed.y);
+                                    return label;
+                                },
+                                afterLabel: function(context) {
+                                    const priceHigh = parseFloat(document.getElementById('price_high').value);
+                                    const priceLow = parseFloat(document.getElementById('price_low').value);
+                                    
+                                    if (context.raw === points.highPeak.y && context.label === points.highPeak.x) {
+                                        return `- Peak Hours(Highest Daily)\n  Usage: ${formatEUNumber(points.highPeak.y)} kW / Cost: €${formatEUNumber(points.highPeak.y * priceHigh)}`;
+                                    }
+                                    if (context.raw === points.lowPeak.y && context.label === points.lowPeak.x) {
+                                        return `- Peak Hours(Highest Daily)\n  Usage: ${formatEUNumber(points.lowPeak.y)} kW / Cost: €${formatEUNumber(points.lowPeak.y * priceHigh)}`;
+                                    }
+                                    if (context.raw === points.highOffPeak.y && context.label === points.highOffPeak.x) {
+                                        return `- Off Peak(Highest Daily)\n  Usage: ${formatEUNumber(points.highOffPeak.y)} kW / Cost: €${formatEUNumber(points.highOffPeak.y * priceLow)}`;
+                                    }
+                                    if (context.raw === points.lowOffPeak.y && context.label === points.lowOffPeak.x) {
+                                        return `- Off Peak(Highest Daily)\n  Usage: ${formatEUNumber(points.lowOffPeak.y)} kW / Cost: €${formatEUNumber(points.lowOffPeak.y * priceLow)}`;
+                                    }
+                                    return '';
+                                }
+                                
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+
+
+//tauhid use usagechart unstead of 'all' parameter below line only
+        function createChartConfig(chartType, labels, datasets, indices, chartClassification='usageChart') {                        
+            // Calculate the positions for all annotations 
+            const points = {
+                highPeak: {
+                    x: labels[indices.highestPeakIndex],
+                    y: datasets[0].data[indices.highestPeakIndex],
+                    color: 'rgba(255, 99, 132, 0.8)'
+                },
+                lowPeak: {
+                    x: labels[indices.lowestPeakIndex],
+                    y: datasets[0].data[indices.lowestPeakIndex],
+                    color: 'rgba(255, 99, 132, 0.8)'
+                },
+                highOffPeak: {
+                    x: labels[indices.highestOffPeakIndex],
+                    y: datasets[1].data[indices.highestOffPeakIndex],
+                    color: 'rgba(54, 162, 235, 0.8)'
+                },
+                lowOffPeak: {
+                    x: labels[indices.lowestOffPeakIndex],
+                    y: datasets[1].data[indices.lowestOffPeakIndex],
+                    color: 'rgba(54, 162, 235, 0.8)'
+                }
+            };            
+        
+            // Define all annotations including the ceiling
+            let annotations = {
+                highestPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.highPeak.x,
+                    yValue: points.highPeak.y,
+                    backgroundColor: points.highPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Highest Peak',
+                        position: 'top'
+                    }
+                },
+                lowestPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.lowPeak.x,
+                    yValue: points.lowPeak.y,
+                    backgroundColor: points.lowPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Lowest Peak',
+                        position: 'bottom'
+                    }
+                },
+                highestOffPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.highOffPeak.x,
+                    yValue: points.highOffPeak.y,
+                    backgroundColor: points.highOffPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Highest Off-Peak',
+                        position: 'top'
+                    }
+                },
+                lowestOffPeakAnnotation: {
+                    type: 'point',
+                    xValue: points.lowOffPeak.x,
+                    yValue: points.lowOffPeak.y,
+                    backgroundColor: points.lowOffPeak.color,
+                    radius: 10,
+                    borderWidth: 2,
+                    borderColor: 'white',
+                    label: {
+                        display: true,
+                        content: 'Lowest Off-Peak',
+                        position: 'bottom'
+                    }
+                },
+                ceiling: {
+                    type: 'line',
+                    yMin: calculateAdjustedCeiling(),
+                    yMax: calculateAdjustedCeiling(),
+                    borderColor: 'rgba(255, 0, 0, 0.8)',
+                    borderWidth: 3,
+                    borderDash: [10, 5],
+                    yScaleID: 'consumption', // Changed from scaleID to yScaleID
+                    label: {
+                        display: true,
+                        content: `Ceiling: ${formatEUNumber(calculateAdjustedCeiling())} kW`,
+                        position: 'start',
+                        backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                        color: 'white',
+                        padding: 6
+                    }
+                }
+            };           
+
+            if (chartClassification==='usageChart') {
+                 datasets = datasets.filter(
+                     (item) => item.label==='Peak Hours Consumption (kW)'
+                     || item.label === 'Off-Peak Hours Consumption (kW)'
+                     ||  item.label === 'Total Consumption (kW)'
+                 )
+            } else if (chartClassification==='pricingChart') {
+                datasets = datasets.filter(
+                    (item) => item.label==='Peak Hours Cost (€)'
+                    || item.label === 'Off-Peak Hours Cost (€)'
+                )
+                annotations = {}
+            } else if(chartClassification==='ceiling') {
+                // datasets = datasets.filter((item) => item.label==='Total Consumption (kW)')
+                datasets = []
+                annotations = { ceiling: annotations.ceiling};
+            }
+            
+            return {
+                type: chartType === 'mixed' ? 'bar' : chartType,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        consumption: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Energy Consumption (kW)'
+                            }
+                        },
+                        cost: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Cost (€)'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: annotations  // Use the annotations object defined above
+                        },
+                        title: {
+                            display: true,
+                            text: 'Daily Energy Consumption and Costs'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += formatEUNumber(context.parsed.y);
+                                    return label;
+                                },
+                                afterLabel: function(context) {
+                                    const priceHigh = parseFloat(document.getElementById('price_high').value);
+                                    const priceLow = parseFloat(document.getElementById('price_low').value);
+                                    
+                                    if (context.raw === points.highPeak.y && context.label === points.highPeak.x) {
+                                        return `- Peak Hours(Highest Daily)\n  Usage: ${formatEUNumber(points.highPeak.y)} kW / Cost: €${formatEUNumber(points.highPeak.y * priceHigh)}`;
+                                    }
+                                    if (context.raw === points.lowPeak.y && context.label === points.lowPeak.x) {
+                                        return `- Peak Hours(Highest Daily)\n  Usage: ${formatEUNumber(points.lowPeak.y)} kW / Cost: €${formatEUNumber(points.lowPeak.y * priceHigh)}`;
+                                    }
+                                    if (context.raw === points.highOffPeak.y && context.label === points.highOffPeak.x) {
+                                        return `- Off Peak(Highest Daily)\n  Usage: ${formatEUNumber(points.highOffPeak.y)} kW / Cost: €${formatEUNumber(points.highOffPeak.y * priceLow)}`;
+                                    }
+                                    if (context.raw === points.lowOffPeak.y && context.label === points.lowOffPeak.x) {
+                                        return `- Off Peak(Highest Daily)\n  Usage: ${formatEUNumber(points.lowOffPeak.y)} kW / Cost: €${formatEUNumber(points.lowOffPeak.y * priceLow)}`;
+                                    }
+                                    return '';
+                                }
+                                
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+
+
         // Update the renderChart and updateChartType functions to calculate all indices
         function calculateIndices(consumption) {
             const dayConsumption = consumption.day_consumption;
@@ -1981,15 +3626,20 @@
             const datasets = createDatasets(data.chart_data, chartType);
             const indices = calculateIndices(data.chart_data.datasets.consumption);
             const config = createChartConfig(chartType, data.chart_data.labels, datasets, indices);
-            
+            //tauhid below line
+            const config_p = createChartConfig_p(chartType, data.chart_data.labels, datasets, indices);
+            //tauhid below line
+            const config_c = createChartConfig_c(chartType, data.chart_data.labels, datasets, indices);
+
             energyChart = new Chart(ctx, config);
             chartData = data; // Store the data globally
             
-            energyChart_p = new Chart(ctx_p, config);
+            energyChart_p = new Chart(ctx_p, config_p);
             chartData = data;
 
-            energyChart_c = new Chart(ctx_c, config);
+            energyChart_c = new Chart(ctx_c, config_c);
             chartData = data;
+
             // Initialize summary statistics
             updateSummaryStatistics(data.chart_data);
         }
@@ -2141,10 +3791,10 @@
             document.getElementById('off-peak-unit-price').textContent = '€ ' + String(data.off_peak_price)
             document.getElementById('peak-total-usage').textContent = data.total_day_consumption
             document.getElementById('off-peak-total-usage').textContent = data.total_night_consumption
-            document.getElementById('peak-total-price').textContent = '€ ' + String(data.total_day_cost) + ',-'
-            document.getElementById('off-peak-total-price').textContent = '€ ' + String(data.total_night_cost) + ',-'
+            document.getElementById('peak-total-price').textContent = '€ ' + formatEUNumber(data.total_day_cost) + ',-'
+            document.getElementById('off-peak-total-price').textContent = '€ ' + formatEUNumber(data.total_night_cost) + ',-'
             document.getElementById('total-usage').textContent = data.total_consumption
-            document.getElementById('total-cost').textContent = '€ ' + String(data.total_cost) + ',-'
+            document.getElementById('total-cost').textContent = '€ ' + formatEUNumber(data.total_cost) + ',-'
         }
         
 

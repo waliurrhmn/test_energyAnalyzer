@@ -6,3 +6,4 @@ urlpatterns = [
     path('upload/', upload_file, name='upload_file'),
     path('login/', login_view, name='login'),
 ]
+

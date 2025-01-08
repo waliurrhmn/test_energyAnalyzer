@@ -165,7 +165,9 @@ def analyze_energy_data(df, pricing_periods, kwh_ceiling):
     # Generate hourly data
     df_hourly = df.copy()
     df_hourly.index = df_hourly.index.floor('h')
+    
     hourly_data = df_hourly.groupby(df_hourly.index).agg({'Day_Consumption': 'sum', 'Night_Consumption': 'sum'})
+    
     hourly_labels = hourly_data.index.strftime('%Y-%m-%d %H:%M').tolist()
     hourly_day_values = hourly_data['Day_Consumption'].tolist()
     hourly_night_values = hourly_data['Night_Consumption'].tolist()
@@ -431,6 +433,7 @@ def upload_file(request):
             response_data = {
                 'success': True,
                 'chart_data': chart_data,
+                
                 'kwh_ceiling': kwh_ceiling,
                 'consumption_averages': averages,
             }
