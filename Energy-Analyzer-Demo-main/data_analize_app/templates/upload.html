@@ -1,108 +1,9 @@
 {% extends 'master/base.html' %}
 
 {% load static %}
-
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 {% block content %}
-<style>
-    /* Analysis Results Styles */
-    .results-card {
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s ease-in-out;
-        border-radius: 10px;
-        overflow: hidden;
-    }
 
-    .results-card:hover {
-        transform: translateY(-5px);
-    }
-
-    .results-card .card-header {
-        background: linear-gradient(135deg, #2193b0, #6dd5ed);
-        color: white;
-        border-bottom: none;
-        padding: 1rem;
-    }
-
-    .results-card .card-header h3 {
-        margin: 0;
-        font-size: 1.5rem;
-    }
-
-    .consumption-card {
-        border: none;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        margin-bottom: 1rem;
-    }
-
-    .consumption-card .card-header {
-        background: #f8f9fa;
-        border-bottom: 2px solid #e9ecef;
-        color: #495057;
-        font-weight: 600;
-    }
-
-    .consumption-card .card-body {
-        padding: 1.25rem;
-    }
-
-    .consumption-value {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #2193b0;
-    }
-
-    .consumption-label {
-        color: #6c757d;
-        font-size: 0.9rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .chart-container {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        margin-top: 2rem;
-    }
-
-    .chart-container-pricing {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        margin-top: 2rem;
-    }
-
-    .statistics-card {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-top: 1.5rem;
-    }
-
-    .statistics-item {
-        padding: 0.5rem;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .statistics-item:last-child {
-        border-bottom: none;
-    }
-
-    .statistics-label {
-        color: #495057;
-        font-weight: 500;
-    }
-
-    .statistics-value {
-        color: #2193b0;
-        font-weight: 600;
-    }
-</style>
-<!--
-<link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
--->
 <div class="container mt-5">
     <div class="alert alert-danger" id="errorAlert" style="display: none;">
         <h5 class="alert-heading">Error</h5>
@@ -1747,22 +1648,20 @@
                     return filteredData;
                 }
 
-
-
                 else if (timeGranularity === 'hourly') {
                     const hourlyData = {
-                        labels: [], // Time intervals in 15-minute increments
+                        labels: [], // Time intervals with grouped dates
                         datasets: {
                             consumption: {
                                 day_consumption: [],
                                 night_consumption: [],
                                 total_consumption: [], // Sum of day and night consumption for the hour
                             },
-                            costs: {
-                                day_costs: [],
-                                night_costs: [],
-                                total_costs: [], // Sum of day and night costs for the hour
-                            },
+                            //costs: {
+                            //    day_costs: [],
+                            //    night_costs: [],
+                            //    total_costs: [], // Sum of day and night costs for the hour
+                            //},
                         },
                         summaries: {
                             total_day_consumption: 0,
@@ -1780,6 +1679,9 @@
                     // Retrieve prices from the DOM
                     const peakPrice = parseFloat(document.getElementById('price_high')?.value || '0.35');
                     const offPeakPrice = parseFloat(document.getElementById('price_low')?.value || '0.25');
+
+                    // Track the last processed date
+                    let lastDate = "";
 
                     // Loop through filtered data labels and calculate intervals
                     filteredData.labels.forEach((dateStr, index) => {
@@ -1815,14 +1717,6 @@
                                 hourNightConsumption += currentIntervalNightConsumption;
                                 hourDayCost += currentIntervalDayCost;
                                 hourNightCost += currentIntervalNightCost;
-
-                                // Add interval label for x-axis
-                                if (interval === 0) {
-                                    const intervalDate = new Date(date);
-                                    intervalDate.setHours(hour, 0, 0, 0);
-                                    const intervalLabel = intervalDate.toISOString().replace('T', ' ').slice(11, 16); // Format as "HH:MM"
-                                    hourlyData.labels.push(intervalLabel);
-                                }
                             }
 
                             // Push summed hourly values to datasets
@@ -1833,6 +1727,19 @@
                             hourlyData.datasets.costs.night_costs.push(hourNightCost);
                             hourlyData.datasets.costs.total_costs.push(hourDayCost + hourNightCost);
 
+                            // Add date and time label for x-axis with grouped date
+                            const hourLabelDate = new Date(date);
+                            hourLabelDate.setHours(hour, 0, 0, 0);
+                            const currentDate = hourLabelDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                            const currentTime = hourLabelDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+                            if (currentDate !== lastDate) {
+                                hourlyData.labels.push(`${currentDate}\n${currentTime}`);
+                                lastDate = currentDate;
+                            } else {
+                                hourlyData.labels.push(currentTime);
+                            }
+
                             // Update summaries
                             hourlyData.summaries.total_day_consumption += hourDayConsumption;
                             hourlyData.summaries.total_night_consumption += hourNightConsumption;
@@ -1842,9 +1749,10 @@
                     });
 
                     return hourlyData;
-                } else if (timeGranularity === 'daily') {
-                    return filteredData;
                 }
+
+
+                
             }
             
             return filteredData;
@@ -3481,7 +3389,7 @@ function createChartConfig_c(chartType, labels, datasets, indices, chartClassifi
                  datasets = datasets.filter(
                      (item) => item.label==='Peak Hours Consumption (kW)'
                      || item.label === 'Off-Peak Hours Consumption (kW)'
-                     ||  item.label === 'Total Consumption (kW)'
+                     //||  item.label === 'Total Consumption (kW)'
                  )
             } else if (chartClassification==='pricingChart') {
                 datasets = datasets.filter(
@@ -3496,7 +3404,7 @@ function createChartConfig_c(chartType, labels, datasets, indices, chartClassifi
             }
             
             return {
-                type: chartType === 'mixed' ? 'bar' : chartType,
+                type: chartType === 'line' ? 'bar' : chartType,
                 data: {
                     labels: labels,
                     datasets: datasets
@@ -3517,18 +3425,18 @@ function createChartConfig_c(chartType, labels, datasets, indices, chartClassifi
                                 text: 'Energy Consumption (kW)'
                             }
                         },
-                        cost: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: {
-                                display: true,
-                                text: 'Cost (€)'
-                            },
-                            grid: {
-                                drawOnChartArea: false
-                            }
-                        },
+                        //cost: {
+                        //    type: 'linear',
+                        //    display: true,
+                        //    position: 'right',
+                        //    title: {
+                        //        display: true,
+                        //        text: 'Cost (€)'
+                        //    },
+                        //    grid: {
+                        //        drawOnChartArea: false
+                        //    }
+                        //},
                         x: {
                             title: {
                                 display: true,

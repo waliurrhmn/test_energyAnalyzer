@@ -1,0 +1,185 @@
+/* Variables for reusability */
+:root {
+    --primary-color: #2193b0;
+    --secondary-color: #6dd5ed;
+    --text-color: #495057;
+    --muted-text-color: #6c757d;
+    --background-light: #f8f9fa;
+    --border-color: #e9ecef;
+    --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --header-background: #ffffff;
+}
+
+/* Analysis Results Styles */
+.results-card {
+    box-shadow: var(--shadow-medium);
+    transition: transform 0.2s ease-in-out;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.results-card:hover {
+    transform: translateY(-5px);
+}
+
+.results-card .card-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #2193b0;
+    border-bottom: none;
+    padding: 1rem;
+}
+
+.results-card .card-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+/* Consumption Card */
+.consumption-card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: var(--shadow-light);
+    margin-bottom: 1rem;
+}
+
+.consumption-card .card-header {
+    background: var(--background-light);
+    border-bottom: 2px solid var(--border-color);
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.consumption-card .card-body {
+    padding: 1.25rem;
+}
+
+.consumption-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.consumption-label {
+    color: var(--muted-text-color);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Chart Containers */
+.chart-container, .chart-container-pricing {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow-light);
+    margin-top: 2rem;
+}
+
+/* Usage Chart Specific Styles */
+.usage-chart {
+    background: var(--header-background);
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow-light);
+    margin: 1rem 0;
+    border: 1px solid var(--border-color);
+}
+
+.usage-chart h1 {
+    color: var(--text-color);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.usage-chart select {
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 0.5rem;
+    font-size: 1rem;
+    color: var(--text-color);
+    background-color: white;
+    margin: 0 0.5rem;
+    box-shadow: var(--shadow-light);
+}
+
+.usage-chart select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 5px var(--primary-color);
+}
+
+.usage-chart label {
+    font-weight: 500;
+    color: var(--text-color);
+    margin-right: 0.5rem;
+}
+
+.usage-chart .form-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.usage-chart .form-group div {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Statistics Card */
+.statistics-card {
+    background: var(--background-light);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1.5rem;
+}
+
+.statistics-item {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.statistics-item:last-child {
+    border-bottom: none;
+}
+
+.statistics-label {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.statistics-value {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .results-card, .consumption-card, .chart-container, .statistics-card {
+        padding: 1rem;
+    }
+
+    .results-card .card-header h3, .consumption-value {
+        font-size: 1.2rem;
+    }
+
+    .consumption-label {
+        font-size: 0.8rem;
+    }
+
+    .usage-chart {
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+    }
+
+    .usage-chart select {
+        padding: 0.4rem;
+        font-size: 0.9rem;
+    }
+
+    .usage-chart label {
+        font-size: 0.9rem;
+    }
+}
